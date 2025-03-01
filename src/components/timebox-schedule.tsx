@@ -126,7 +126,7 @@ export function TimeboxSchedule({
   };
 
   return (
-    <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+    <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-2 print:max-h-none print:overflow-visible print:pr-0">
       {timeSlots.map((time) => {
         const event = getEventAtSlot(time);
         const partOfEvent = isPartOfEvent(time);
@@ -156,10 +156,10 @@ export function TimeboxSchedule({
 
               <div
                 data-event-id={event.id}
-                className="group ml-11 flex h-full flex-col overflow-hidden rounded-md border border-red-200 bg-red-50 text-red-800"
+                className="group ml-11 flex h-full flex-col overflow-hidden rounded-md border border-red-200 bg-red-50 text-red-800 print:rounded-sm"
               >
                 <div
-                  className="flex cursor-move items-center bg-red-100 p-2"
+                  className="flex cursor-move items-center bg-red-100 p-2 print:cursor-default"
                   draggable="true"
                   onDragStart={(e) => {
                     setDraggedEvent(event);
@@ -190,7 +190,7 @@ export function TimeboxSchedule({
                   }}
                   onDragEnd={() => setDraggedEvent(null)}
                 >
-                  <GripVertical className="mr-2 h-4 w-4 text-red-600" />
+                  <GripVertical className="mr-2 h-4 w-4 text-red-600 print:hidden" />
                   <Input
                     ref={(el) => {
                       if (el) inputRefs.current[event.id] = el;
@@ -198,12 +198,13 @@ export function TimeboxSchedule({
                     value={event.activity}
                     onChange={(e) => updateActivity(event.id, e.target.value)}
                     placeholder="Add activity..."
-                    className="h-auto flex-1 rounded-none border-0 bg-transparent p-0 text-red-800 shadow-none focus-visible:ring-0"
+                    className="h-auto flex-1 rounded-none border-0 bg-transparent p-0 text-red-800 shadow-none focus-visible:ring-0 print:static print:border-none print:placeholder-transparent print:outline-none"
+                    readOnly={false}
                   />
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-red-600 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="h-6 w-6 text-red-600 opacity-0 transition-opacity group-hover:opacity-100 print:hidden"
                     onClick={() => deleteEvent(event.id)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -273,7 +274,7 @@ export function TimeboxSchedule({
               role="button"
               aria-label={`Add event at ${time}:00`}
             >
-              <div className="flex h-full cursor-pointer items-center justify-center text-gray-400 text-sm">
+              <div className="flex h-full cursor-pointer items-center justify-center text-gray-400 text-sm print:hidden">
                 + Add event
               </div>
             </div>

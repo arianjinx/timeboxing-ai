@@ -5,8 +5,8 @@ import { TimeboxSchedule } from "@/components/timebox-schedule";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Settings } from "lucide-react";
-import { useState } from "react";
+import { Calendar, Printer, Settings, WandSparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function TimeboxApp() {
   const [date] = useState(new Date());
@@ -28,6 +28,46 @@ export default function TimeboxApp() {
     start: "05:00",
     end: "21:00",
   });
+
+  // Add print-specific styles when component mounts
+  useEffect(() => {
+    // Add print styles to document head
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @media print {
+        @page {
+          size: portrait;
+          margin: 0.5cm;
+        }
+        body {
+          print-color-adjust: exact;
+          -webkit-print-color-adjust: exact;
+        }
+        .print-show-only-events .print:hidden {
+          display: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Setup print event listeners for better print experience
+    const beforePrint = () => {
+      document.body.classList.add("print-show-only-events");
+    };
+
+    const afterPrint = () => {
+      document.body.classList.remove("print-show-only-events");
+    };
+
+    window.addEventListener("beforeprint", beforePrint);
+    window.addEventListener("afterprint", afterPrint);
+
+    return () => {
+      document.head.removeChild(style);
+      window.removeEventListener("beforeprint", beforePrint);
+      window.removeEventListener("afterprint", afterPrint);
+    };
+  }, []);
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -152,26 +192,27 @@ export default function TimeboxApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl overflow-hidden rounded-xl bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-xl bg-white shadow-sm print:rounded-none print:shadow-none">
+        <div className="flex items-center justify-between border-b p-4 md:p-6 print:p-4">
           <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <h1 className="font-semibold text-xl">Daily Schedule</h1>
+            <Calendar className="h-5 w-5 text-gray-500 print:text-black" />
+            <h1 className="font-semibold text-xl">Timebox</h1>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setIsSettingsOpen(true)}
+            className="print:hidden"
           >
             <Settings className="h-5 w-5" />
             <span className="sr-only">Settings</span>
           </Button>
         </div>
 
-        <div className="grid h-full grid-cols-1 md:grid-cols-2">
+        <div className="grid h-full grid-cols-1 md:grid-cols-2 print:grid-cols-2">
           {/* Left Column - Goals and Brain Dump */}
-          <div className="border-r p-4 md:p-6">
+          <div className="border-r p-4 md:p-6 print:p-4">
             <div className="mb-6">
               <p className="mb-1 text-gray-500 text-sm">Day</p>
               <p className="font-medium text-lg">{formatDate(date)}</p>
@@ -184,9 +225,10 @@ export default function TimeboxApp() {
                   onClick={generateTopGoals}
                   disabled={isGenerating}
                   size="sm"
-                  className="bg-blue-600 text-white hover:bg-blue-700"
+                  className="bg-blue-600 text-white hover:bg-blue-700 print:hidden"
                 >
-                  Generate with AI
+                  <WandSparkles className="mr-2 h-4 w-4" />
+                  {isGenerating ? "Generating..." : "Generate with AI"}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -196,7 +238,8 @@ export default function TimeboxApp() {
                     value={goal}
                     onChange={(e) => updateTopGoal(index, e.target.value)}
                     placeholder={`Goal ${index + 1}`}
-                    className="border-gray-300"
+                    className="border-gray-300 print:static print:border-none print:bg-transparent print:p-0 print:placeholder-transparent print:shadow-none print:outline-none"
+                    readOnly={false}
                   />
                 ))}
               </div>
@@ -208,20 +251,22 @@ export default function TimeboxApp() {
                 value={brainDump}
                 onChange={(e) => setBrainDump(e.target.value)}
                 placeholder="Add all your tasks here..."
-                className="min-h-[200px] border-gray-300"
+                className="min-h-[200px] border-gray-300 print:h-auto print:min-h-fit print:resize-none print:border-none print:bg-transparent print:p-0 print:placeholder-transparent print:shadow-none print:outline-none"
               />
             </div>
           </div>
 
           {/* Right Column - Schedule */}
-          <div className="relative p-4 md:p-6">
-            <div className="mb-6 flex items-center justify-between">
+          <div className="relative p-4 md:p-6 print:p-4">
+            <div className="mb-6 flex items-center justify-between print:hidden">
               <h2 className="font-medium">Schedule</h2>
               <Button
                 onClick={generateSchedule}
                 disabled={isGenerating}
+                size="sm"
                 className="bg-blue-600 text-white hover:bg-blue-700"
               >
+                <WandSparkles className="mr-2 h-4 w-4" />
                 {isGenerating ? "Generating..." : "Generate with AI"}
               </Button>
             </div>
@@ -233,6 +278,17 @@ export default function TimeboxApp() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Print Button */}
+      <div className="mx-auto mt-4 flex max-w-7xl justify-end print:hidden">
+        <Button
+          onClick={() => window.print()}
+          className="bg-blue-600 text-white hover:bg-blue-700"
+        >
+          <Printer className="mr-2 h-4 w-4" />
+          Print / Save as PDF
+        </Button>
       </div>
 
       <SettingsDialog
