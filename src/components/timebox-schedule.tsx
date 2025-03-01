@@ -227,7 +227,6 @@ export function TimeboxSchedule({
               className="relative mb-2"
               style={{
                 height: `${totalHeight}px`,
-                transition: "height 0.2s ease-in-out",
               }}
             >
               <div className="absolute top-0 left-0 w-8 pt-2 text-right text-gray-500 text-sm">
