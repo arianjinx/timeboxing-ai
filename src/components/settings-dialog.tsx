@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -21,6 +21,10 @@ interface SettingsDialogProps {
   setDayDuration: React.Dispatch<
     React.SetStateAction<{ start: string; end: string }>
   >;
+  name: string;
+  setName: Dispatch<SetStateAction<string>>;
+  northStar: string;
+  setNorthStar: Dispatch<SetStateAction<string>>;
 }
 
 export function SettingsDialog({
@@ -28,12 +32,18 @@ export function SettingsDialog({
   onOpenChange,
   dayDuration,
   setDayDuration,
+  name,
+  setName,
+  northStar,
+  setNorthStar,
 }: SettingsDialogProps) {
-  const [name, setName] = useState("");
-  const [northStar, setNorthStar] = useState("");
-
   const saveSettings = () => {
-    // In a real app, save these settings to state or localStorage
+    // Save settings to localStorage
+    localStorage.setItem("timebox-name", name);
+    localStorage.setItem("timebox-northStar", northStar);
+    localStorage.setItem("timebox-dayDuration", JSON.stringify(dayDuration));
+
+    // Close the dialog
     onOpenChange(false);
   };
 

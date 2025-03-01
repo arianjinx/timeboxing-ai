@@ -1,21 +1,16 @@
 "use client";
 
+import type { ScheduleItem } from "@/app/dto";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { GripVertical, Minus, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-interface ScheduleEvent {
-  id: string;
-  startTime: number;
-  duration: number;
-  activity: string;
-}
-
 interface TimeboxScheduleProps {
-  schedule: ScheduleEvent[];
-  setSchedule: (schedule: ScheduleEvent[]) => void;
+  schedule: ScheduleItem[];
+  setSchedule: (schedule: ScheduleItem[]) => void;
   dayDuration: { start: string; end: string };
+  topGoals?: string[]; // Add topGoals prop to identify top goal activities
 }
 
 export function TimeboxSchedule({
@@ -23,13 +18,51 @@ export function TimeboxSchedule({
   setSchedule,
   dayDuration,
 }: TimeboxScheduleProps) {
-  const [draggedEvent, setDraggedEvent] = useState<ScheduleEvent | null>(null);
+  const [draggedEvent, setDraggedEvent] = useState<ScheduleItem | null>(null);
   const [newEventId, setNewEventId] = useState<string | null>(null);
   const [showDurationSelect, setShowDurationSelect] = useState<number | null>(
     null,
   );
-  const inputRefs = useRef<Record<string, HTMLInputElement>>({});
+  const inputRefs = useRef<Record<string, HTMLTextAreaElement>>({});
   const durationSelectRef = useRef<HTMLDivElement>(null);
+
+  // Get color classes based on activity type
+  const getColorClasses = (activityType: ScheduleItem["activityType"]) => {
+    switch (activityType) {
+      case "top-goal":
+        return {
+          container: "border-red-200 bg-red-50 text-red-800",
+          header: "bg-red-100",
+          button: "text-red-600",
+          text: "text-red-600",
+          resizeButton: "bg-red-100 text-red-700 hover:bg-red-200",
+        };
+      case "leisure":
+        return {
+          container: "border-purple-200 bg-purple-50 text-purple-800",
+          header: "bg-purple-100",
+          button: "text-purple-600",
+          text: "text-purple-600",
+          resizeButton: "bg-purple-100 text-purple-700 hover:bg-purple-200",
+        };
+      case "physical":
+        return {
+          container: "border-green-200 bg-green-50 text-green-800",
+          header: "bg-green-100",
+          button: "text-green-600",
+          text: "text-green-600",
+          resizeButton: "bg-green-100 text-green-700 hover:bg-green-200",
+        };
+      default:
+        return {
+          container: "border-blue-200 bg-blue-50 text-blue-800",
+          header: "bg-blue-100",
+          button: "text-blue-600",
+          text: "text-blue-600",
+          resizeButton: "bg-blue-100 text-blue-700 hover:bg-blue-200",
+        };
+    }
+  };
 
   // Generate time slots based on day duration settings
   const startHour = Number.parseInt(dayDuration.start.split(":")[0]);
@@ -107,11 +140,12 @@ export function TimeboxSchedule({
     }
 
     const id = `event-${Date.now()}`;
-    const newEvent = {
+    const newEvent: ScheduleItem = {
       id,
       startTime,
       duration: adjustedDuration,
       activity: "",
+      activityType: "default" as const,
     };
     setSchedule([...schedule, newEvent]);
     setNewEventId(id);
@@ -212,49 +246,42 @@ export function TimeboxSchedule({
         if (partOfEvent) return null;
 
         if (event) {
-          // Calculate height including margins for multi-hour events
-          // Each hour slot is 42px tall with 8px margin (mb-2)
-          // For multi-hour events, we need to include the accumulated margins
-          const hourHeight = 42;
-          const marginHeight = 8; // equivalent to mb-2
+          // Get color classes based on activity type
+          const colorClasses = getColorClasses(event.activityType);
 
-          const totalHeight =
-            hourHeight * event.duration + marginHeight * (event.duration - 1); // Include cumulative internal margins
-
+          // Remove fixed height calculation and allow for fluid height
           return (
-            <div
-              key={event.id}
-              className="relative mb-2"
-              style={{
-                height: `${totalHeight}px`,
-              }}
-            >
+            <div key={event.id} className="relative mb-2">
               <div className="absolute top-0 left-0 w-8 pt-2 text-right text-gray-500 text-sm">
                 {time}
               </div>
 
               <div
                 data-event-id={event.id}
-                className="group ml-11 flex h-full flex-col overflow-hidden rounded-md border border-red-200 bg-red-50 text-red-800 print:rounded-sm"
+                className={`group ml-11 flex flex-col overflow-visible rounded-md border text-red-800 print:rounded-sm ${colorClasses.container}`}
               >
                 <div
-                  className="flex cursor-move items-center bg-red-100 p-2 print:cursor-default"
+                  className={`flex cursor-move items-center p-2 print:cursor-default ${colorClasses.header}`}
                   draggable="true"
                   onDragStart={(e) => {
                     setDraggedEvent(event);
                     // Add drag image to improve dragging experience
                     if (e.dataTransfer) {
                       e.dataTransfer.effectAllowed = "move";
-                      // Set the drag ghost image (optional)
+                      // Create a more visible and descriptive drag ghost
                       try {
                         const dragGhost = document.createElement("div");
                         dragGhost.textContent = event.activity || "Event";
-                        dragGhost.style.padding = "4px 8px";
+                        dragGhost.style.padding = "8px 12px";
                         dragGhost.style.background = "rgba(254, 226, 226, 0.9)";
                         dragGhost.style.border = "1px solid rgb(254, 202, 202)";
                         dragGhost.style.borderRadius = "4px";
                         dragGhost.style.position = "absolute";
                         dragGhost.style.top = "-1000px";
+                        dragGhost.style.width = "200px";
+                        dragGhost.style.overflow = "hidden";
+                        dragGhost.style.whiteSpace = "nowrap";
+                        dragGhost.style.textOverflow = "ellipsis";
                         document.body.appendChild(dragGhost);
                         e.dataTransfer.setDragImage(dragGhost, 0, 0);
                         // Clean up after dragging
@@ -269,21 +296,30 @@ export function TimeboxSchedule({
                   }}
                   onDragEnd={() => setDraggedEvent(null)}
                 >
-                  <GripVertical className="mr-2 h-4 w-4 text-red-600 print:hidden" />
-                  <Input
-                    ref={(el) => {
-                      if (el) inputRefs.current[event.id] = el;
-                    }}
-                    value={event.activity}
-                    onChange={(e) => updateActivity(event.id, e.target.value)}
-                    placeholder="Add activity..."
-                    className="h-auto flex-1 rounded-none border-0 bg-transparent p-0 text-red-800 shadow-none focus-visible:ring-0 print:static print:border-none print:placeholder-transparent print:outline-none"
-                    readOnly={false}
+                  <GripVertical
+                    className={`mr-2 h-4 w-4 print:hidden ${colorClasses.button}`}
                   />
+                  <div className="w-full flex-1">
+                    <Textarea
+                      ref={(el) => {
+                        if (el) inputRefs.current[event.id] = el;
+                      }}
+                      value={event.activity}
+                      onChange={(e) => updateActivity(event.id, e.target.value)}
+                      placeholder="Add activity..."
+                      className={`min-h-auto w-full resize-none rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 print:static print:border-none print:placeholder-transparent print:outline-none ${colorClasses.container.split(" ")[2]}`}
+                      readOnly={false}
+                      onInput={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = "auto";
+                        target.style.height = `${target.scrollHeight}px`;
+                      }}
+                    />
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-red-600 opacity-0 transition-opacity group-hover:opacity-100 print:hidden"
+                    className={`h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100 print:hidden ${colorClasses.button}`}
                     onClick={() => deleteEvent(event.id)}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -291,10 +327,10 @@ export function TimeboxSchedule({
                 </div>
 
                 {/* Fill the remaining space */}
-                <div className="flex-1 bg-red-50">
+                <div className={`py-1 ${colorClasses.container.split(" ")[1]}`}>
                   {/* Duration indicator and resize buttons */}
-                  <div className="flex items-center justify-between px-2 py-1">
-                    <span className="text-red-600 text-xs">
+                  <div className="flex items-center justify-between px-2">
+                    <span className={`text-xs ${colorClasses.text}`}>
                       {event.duration > 1
                         ? `${event.duration} hours`
                         : "1 hour"}
@@ -304,7 +340,7 @@ export function TimeboxSchedule({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-red-100 text-red-700 hover:bg-red-200"
+                        className={`h-5 w-5 rounded-full hover:bg-red-200 ${colorClasses.resizeButton}`}
                         onClick={() =>
                           resizeEvent(event.id, event.duration - 1)
                         }
@@ -317,7 +353,7 @@ export function TimeboxSchedule({
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-5 w-5 rounded-full bg-red-100 text-red-700 hover:bg-red-200"
+                        className={`h-5 w-5 rounded-full hover:bg-red-200 ${colorClasses.resizeButton}`}
                         onClick={() =>
                           resizeEvent(event.id, event.duration + 1)
                         }
@@ -336,9 +372,6 @@ export function TimeboxSchedule({
           <div
             key={`empty-${time}`}
             className="relative mb-2"
-            style={{
-              height: "42px", // Match the one-hour event height
-            }}
             data-time-slot={time}
             onDragOver={(e) => {
               e.preventDefault();
@@ -441,7 +474,9 @@ export function TimeboxSchedule({
                     </div>
                   </div>
                 ) : (
-                  "+ Add event"
+                  <span className="flex min-h-[42px] items-center">
+                    + Add event
+                  </span>
                 )}
               </div>
             </div>

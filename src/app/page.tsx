@@ -1,33 +1,51 @@
 "use client";
-
+import { generateSchedule, generateTopDailyGoals } from "@/app/actions";
+import type { ScheduleItem } from "@/app/dto";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { TimeboxSchedule } from "@/components/timebox-schedule";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Printer, Settings, WandSparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function TimeboxApp() {
-  const [date] = useState(new Date());
+  const [date, setDate] = useState(new Date());
   const [brainDump, setBrainDump] = useState("");
   const [topGoals, setTopGoals] = useState<string[]>(["", "", ""]);
-  const [schedule, setSchedule] = useState<
-    { id: string; startTime: number; duration: number; activity: string }[]
-  >([
-    { id: "1", startTime: 6, duration: 1, activity: "Breakfast" },
-    { id: "2", startTime: 7, duration: 2, activity: "Evaluate app feature" },
-    { id: "3", startTime: 9, duration: 1, activity: "Call Tim" },
-    { id: "4", startTime: 11, duration: 1, activity: "Lunch with Lisa" },
-    { id: "5", startTime: 13, duration: 1, activity: "Meeting" },
-    { id: "6", startTime: 14, duration: 1, activity: "Buy groceries" },
-  ]);
+  const [name, setName] = useState("");
+  const [northStar, setNorthStar] = useState("");
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [dayDuration, setDayDuration] = useState({
     start: "05:00",
     end: "21:00",
   });
+
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    // Load user settings
+    const storedName = localStorage.getItem("timebox-name");
+    if (storedName) setName(storedName);
+
+    const storedNorthStar = localStorage.getItem("timebox-northStar");
+    if (storedNorthStar) setNorthStar(storedNorthStar);
+
+    // Load day duration
+    const storedDayDuration = localStorage.getItem("timebox-dayDuration");
+    if (storedDayDuration) {
+      try {
+        const parsedDayDuration = JSON.parse(storedDayDuration);
+        setDayDuration(parsedDayDuration);
+      } catch (error) {
+        console.error("Failed to parse day duration from localStorage", error);
+        toast.error("Failed to load saved time settings");
+      }
+    }
+  }, []);
 
   // Add print-specific styles when component mounts
   useEffect(() => {
@@ -78,117 +96,57 @@ export default function TimeboxApp() {
     }).format(date);
   };
 
+  const generateTopGoalsHandler = async () => {
+    setIsGenerating(true);
+
+    try {
+      const result = await generateTopDailyGoals({
+        northStar,
+        brainDump,
+      });
+
+      if (result.topGoals && result.topGoals.length > 0) {
+        setTopGoals(result.topGoals);
+        toast.success("Top goals generated successfully");
+        setIsGenerating(false);
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to generate top goals from server:", error);
+      toast.error("Failed to generate top goals. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const updateTopGoal = (index: number, value: string) => {
     const newGoals = [...topGoals];
     newGoals[index] = value;
     setTopGoals(newGoals);
   };
 
-  const generateSchedule = async () => {
+  const generateScheduleHandler = async () => {
     setIsGenerating(true);
-    // In a real app, this would call an API to generate the schedule using AI
-    setTimeout(() => {
-      // Simulate AI generating a schedule
-      const activities = [
-        { activity: "Deep work on project", duration: 2 },
-        { activity: "Exercise", duration: 1 },
-        { activity: "Read book", duration: 1 },
-        { activity: "Write article", duration: 2 },
-        { activity: "Team meeting", duration: 1 },
-        { activity: "Plan tomorrow", duration: 1 },
-        { activity: "Review progress", duration: 1 },
-      ];
 
-      // Create a new schedule with some multi-hour blocks
-      const newSchedule = [...schedule];
+    try {
+      const result = await generateSchedule({
+        northStar,
+        brainDump,
+        topGoals,
+        dayDuration,
+      });
 
-      // Add some new activities in empty slots
-      const occupiedTimes = new Set(
-        schedule.flatMap((event) =>
-          Array.from({ length: event.duration }, (_, i) => event.startTime + i),
-        ),
-      );
-
-      // Find available time slots
-      const availableSlots = [];
-      // Extract hours from dayDuration.start and dayDuration.end
-      const startHour = Number.parseInt(dayDuration.start.split(":")[0]);
-      let endHour = Number.parseInt(dayDuration.end.split(":")[0]);
-
-      // Handle midnight (00:00) as 24:00 for proper time slot calculation
-      if (endHour === 0) {
-        endHour = 24;
+      if (result.schedule && result.schedule.length > 0) {
+        setSchedule(result.schedule);
+        toast.success("Schedule generated successfully");
+        return;
       }
-
-      for (let i = startHour; i < endHour; i++) {
-        if (!occupiedTimes.has(i)) {
-          availableSlots.push(i);
-        }
-      }
-
-      // Add 2-3 new activities
-      for (let i = 0; i < Math.min(3, availableSlots.length); i++) {
-        if (availableSlots.length === 0) break;
-
-        const randomActivityIndex = Math.floor(
-          Math.random() * activities.length,
-        );
-        const activity = activities[randomActivityIndex];
-        const startTimeIndex = Math.floor(
-          Math.random() * availableSlots.length,
-        );
-        const startTime = availableSlots[startTimeIndex];
-
-        // Check if we have enough consecutive slots
-        let hasEnoughSlots = true;
-        for (let j = 0; j < activity.duration; j++) {
-          if (!availableSlots.includes(startTime + j)) {
-            hasEnoughSlots = false;
-            break;
-          }
-          // Also check if it's within the day duration range
-          if (startTime + j >= endHour) {
-            hasEnoughSlots = false;
-            break;
-          }
-        }
-
-        if (hasEnoughSlots) {
-          newSchedule.push({
-            id: `generated-${Date.now()}-${i}`,
-            startTime,
-            duration: activity.duration,
-            activity: activity.activity,
-          });
-
-          // Remove used slots
-          for (let j = 0; j < activity.duration; j++) {
-            const index = availableSlots.indexOf(startTime + j);
-            if (index !== -1) {
-              availableSlots.splice(index, 1);
-            }
-          }
-        }
-      }
-
-      setSchedule(newSchedule);
+    } catch (error) {
+      console.error("Failed to generate schedule from server:", error);
+      toast.error("Failed to generate schedule. Please try again.");
+    } finally {
       setIsGenerating(false);
-    }, 1500);
-  };
-
-  const generateTopGoals = async () => {
-    setIsGenerating(true);
-    // In a real app, this would call an API to generate top goals using AI
-    setTimeout(() => {
-      // Simulate AI generating top goals
-      const generatedGoals = [
-        "Complete project proposal",
-        "Exercise for 30 minutes",
-        "Read 20 pages of current book",
-      ];
-      setTopGoals(generatedGoals);
-      setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -214,7 +172,15 @@ export default function TimeboxApp() {
           {/* Left Column - Goals and Brain Dump */}
           <div className="border-r p-4 md:p-6 print:p-4">
             <div className="mb-6">
-              <p className="mb-1 text-gray-500 text-sm">Day</p>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-gray-500 text-sm">Day</p>
+                <DatePicker
+                  date={date}
+                  onSelect={(newDate) => newDate && setDate(newDate)}
+                  triggerClassName="h-7 text-xs print:hidden"
+                  showDateDisplay={false}
+                />
+              </div>
               <p className="font-medium text-lg">{formatDate(date)}</p>
             </div>
 
@@ -222,10 +188,11 @@ export default function TimeboxApp() {
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="font-medium">Top Daily Goals</h2>
                 <Button
-                  onClick={generateTopGoals}
+                  onClick={generateTopGoalsHandler}
                   disabled={isGenerating}
                   size="sm"
-                  className="bg-blue-600 text-white hover:bg-blue-700 print:hidden"
+                  variant="secondary"
+                  className="print:hidden"
                 >
                   <WandSparkles className="mr-2 h-4 w-4" />
                   {isGenerating ? "Generating..." : "Generate with AI"}
@@ -233,13 +200,18 @@ export default function TimeboxApp() {
               </div>
               <div className="space-y-2">
                 {topGoals.map((goal, index) => (
-                  <Input
+                  <Textarea
                     key={index}
                     value={goal}
                     onChange={(e) => updateTopGoal(index, e.target.value)}
                     placeholder={`Goal ${index + 1}`}
-                    className="border-gray-300 print:static print:border-none print:bg-transparent print:p-0 print:placeholder-transparent print:shadow-none print:outline-none"
+                    className="min-h-[60px] resize-none border-gray-300 print:static print:border-none print:bg-transparent print:p-0 print:placeholder-transparent print:shadow-none print:outline-none"
                     readOnly={false}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = "auto";
+                      target.style.height = `${target.scrollHeight}px`;
+                    }}
                   />
                 ))}
               </div>
@@ -261,10 +233,11 @@ export default function TimeboxApp() {
             <div className="mb-6 flex items-center justify-between print:hidden">
               <h2 className="font-medium">Schedule</h2>
               <Button
-                onClick={generateSchedule}
+                onClick={generateScheduleHandler}
                 disabled={isGenerating}
                 size="sm"
-                className="bg-blue-600 text-white hover:bg-blue-700"
+                variant="secondary"
+                className="print:hidden"
               >
                 <WandSparkles className="mr-2 h-4 w-4" />
                 {isGenerating ? "Generating..." : "Generate with AI"}
@@ -275,6 +248,7 @@ export default function TimeboxApp() {
               schedule={schedule}
               setSchedule={setSchedule}
               dayDuration={dayDuration}
+              topGoals={topGoals}
             />
           </div>
         </div>
@@ -282,10 +256,7 @@ export default function TimeboxApp() {
 
       {/* Print Button */}
       <div className="mx-auto mt-4 flex max-w-7xl justify-end print:hidden">
-        <Button
-          onClick={() => window.print()}
-          className="bg-blue-600 text-white hover:bg-blue-700"
-        >
+        <Button onClick={() => window.print()} variant="default">
           <Printer className="mr-2 h-4 w-4" />
           Print / Save as PDF
         </Button>
@@ -296,6 +267,10 @@ export default function TimeboxApp() {
         onOpenChange={setIsSettingsOpen}
         dayDuration={dayDuration}
         setDayDuration={setDayDuration}
+        name={name}
+        setName={setName}
+        northStar={northStar}
+        setNorthStar={setNorthStar}
       />
     </div>
   );
