@@ -73,7 +73,12 @@ export default function TimeboxApp() {
       const availableSlots = [];
       // Extract hours from dayDuration.start and dayDuration.end
       const startHour = Number.parseInt(dayDuration.start.split(":")[0]);
-      const endHour = Number.parseInt(dayDuration.end.split(":")[0]);
+      let endHour = Number.parseInt(dayDuration.end.split(":")[0]);
+
+      // Handle midnight (00:00) as 24:00 for proper time slot calculation
+      if (endHour === 0) {
+        endHour = 24;
+      }
 
       for (let i = startHour; i < endHour; i++) {
         if (!occupiedTimes.has(i)) {

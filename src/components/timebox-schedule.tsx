@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GripVertical, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ScheduleEvent {
   id: string;
@@ -24,10 +24,18 @@ export function TimeboxSchedule({
   dayDuration,
 }: TimeboxScheduleProps) {
   const [draggedEvent, setDraggedEvent] = useState<ScheduleEvent | null>(null);
+  const [newEventId, setNewEventId] = useState<string | null>(null);
+  const inputRefs = useRef<Record<string, HTMLInputElement>>({});
 
   // Generate time slots based on day duration settings
   const startHour = Number.parseInt(dayDuration.start.split(":")[0]);
-  const endHour = Number.parseInt(dayDuration.end.split(":")[0]);
+  let endHour = Number.parseInt(dayDuration.end.split(":")[0]);
+
+  // Handle midnight (00:00) as 24:00 for proper time slot calculation
+  if (endHour === 0) {
+    endHour = 24;
+  }
+
   const timeSlots = Array.from(
     { length: endHour - startHour },
     (_, i) => i + startHour,
@@ -44,6 +52,15 @@ export function TimeboxSchedule({
     setSchedule(schedule.filter((event) => event.id !== id));
   };
 
+  useEffect(() => {
+    // Focus the input of the newly created event
+    if (newEventId && inputRefs.current[newEventId]) {
+      inputRefs.current[newEventId].focus();
+      // Reset newEventId after focusing
+      setNewEventId(null);
+    }
+  }, [newEventId]);
+
   const createEvent = (startTime: number, duration: number) => {
     // Check if the event is within bounds
     const adjustedDuration =
@@ -51,13 +68,15 @@ export function TimeboxSchedule({
         ? Math.max(1, endHour - startTime)
         : duration;
 
+    const id = `event-${Date.now()}`;
     const newEvent = {
-      id: `event-${Date.now()}`,
+      id,
       startTime,
       duration: adjustedDuration,
       activity: "",
     };
     setSchedule([...schedule, newEvent]);
+    setNewEventId(id);
   };
 
   const moveEvent = (id: string, newStartTime: number) => {
@@ -65,7 +84,12 @@ export function TimeboxSchedule({
     if (!eventToMove) return;
 
     // Check if the event would extend beyond the day duration
-    if (newStartTime + eventToMove.duration > endHour) {
+    let checkEndHour = endHour;
+    if (checkEndHour === 0) {
+      checkEndHour = 24; // Handle midnight for boundary checks
+    }
+
+    if (newStartTime + eventToMove.duration > checkEndHour) {
       return; // Don't allow moving if it would extend beyond end time
     }
 
@@ -168,10 +192,13 @@ export function TimeboxSchedule({
                 >
                   <GripVertical className="mr-2 h-4 w-4 text-red-600" />
                   <Input
+                    ref={(el) => {
+                      if (el) inputRefs.current[event.id] = el;
+                    }}
                     value={event.activity}
                     onChange={(e) => updateActivity(event.id, e.target.value)}
                     placeholder="Add activity..."
-                    className="h-auto flex-1 border-0 bg-transparent p-0 text-red-800 shadow-none focus-visible:ring-0"
+                    className="h-auto flex-1 rounded-none border-0 bg-transparent p-0 text-red-800 shadow-none focus-visible:ring-0"
                   />
                   <Button
                     variant="ghost"

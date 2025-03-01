@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -42,6 +43,9 @@ export function SettingsDialog({
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
+        <DialogDescription>
+          Customize your settings to personalize your experience.
+        </DialogDescription>
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
