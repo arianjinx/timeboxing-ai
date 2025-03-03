@@ -212,7 +212,7 @@ export default function TimeboxApp() {
                     value={goal}
                     onChange={(e) => updateTopGoal(index, e.target.value)}
                     placeholder={`Goal ${index + 1}`}
-                    className="min-h-[60px] resize-none border-gray-300 print:static print:border-none print:bg-transparent print:p-0 print:placeholder-transparent print:shadow-none print:outline-none"
+                    className="min-h-auto resize-none border-gray-300 print:static print:border-none print:bg-transparent print:p-0 print:placeholder-transparent print:shadow-none print:outline-none"
                     readOnly={false}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
