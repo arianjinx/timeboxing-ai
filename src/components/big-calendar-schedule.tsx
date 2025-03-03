@@ -156,6 +156,10 @@ export function BigCalendarSchedule({
 
   // Convert the startTime and duration to Date objects for React Big Calendar
   const calendarEvents = useMemo(() => {
+    if (!schedule || schedule.length === 0) {
+      return []; // Return empty array if schedule is empty
+    }
+
     const baseDate = startOfDay(new Date());
 
     // Get time boundaries for filtering
@@ -163,27 +167,45 @@ export function BigCalendarSchedule({
     let [endHours] = dayDuration.end.split(":").map(Number);
     if (endHours === 0) endHours = 24; // Handle midnight as 24:00
 
-    return schedule
-      .filter((item) => {
-        // Filter out events that are completely outside the day boundaries
-        const eventEnd = item.startTime + item.duration;
-        return !(item.startTime >= endHours || eventEnd <= startHours);
-      })
-      .map((item) => {
-        // Create start date by adding hours to base date
-        const start = addHours(baseDate, item.startTime);
-        // Create end date by adding duration to start date
-        const end = addHours(start, item.duration);
+    const filteredSchedule = schedule.filter((item) => {
+      // Filter out events that are completely outside the day boundaries
+      const eventEnd = item.startTime + item.duration;
+      return !(item.startTime >= endHours || eventEnd <= startHours);
+    });
 
-        return {
-          id: item.id,
-          title: item.activity || "Untitled Event",
-          start,
-          end,
-          activityType: item.activityType,
-          resource: item, // Store the original item as a resource
-        };
-      });
+    // If all events were filtered out, return empty array to prevent invalid array length error
+    if (filteredSchedule.length === 0) {
+      return [];
+    }
+
+    return filteredSchedule.map((item) => {
+      // Ensure startTime is within valid bounds after dayDuration changes
+      const adjustedStartTime = Math.max(
+        startHours,
+        Math.min(endHours - 0.5, item.startTime),
+      );
+
+      // Ensure duration is valid (min 0.5, max to fit within bounds)
+      const maxPossibleDuration = endHours - adjustedStartTime;
+      const adjustedDuration = Math.min(
+        maxPossibleDuration,
+        Math.max(0.5, item.duration),
+      );
+
+      // Create start date by adding hours to base date
+      const start = addHours(baseDate, adjustedStartTime);
+      // Create end date by adding duration to start date
+      const end = addHours(start, adjustedDuration);
+
+      return {
+        id: item.id,
+        title: item.activity || "Untitled Event",
+        start,
+        end,
+        activityType: item.activityType,
+        resource: item, // Store the original item as a resource
+      };
+    });
   }, [schedule, dayDuration]);
 
   // Get color classes based on activity type
@@ -547,7 +569,6 @@ export function BigCalendarSchedule({
         // Add custom CSS to style the time slots for hourly visual guidelines
         className="rbc-custom-calendar"
         dayLayoutAlgorithm="no-overlap" // Add this to prevent events from stretching
-        getNow={() => new Date(0)} // Disable current time indicator by setting it to epoch (1970)
       />
 
       {/* Edit Activity Dialog */}
