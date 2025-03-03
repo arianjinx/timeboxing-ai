@@ -2,7 +2,6 @@
 
 import type { ScheduleItem } from "@/app/dto";
 import { addHours, format, startOfDay } from "date-fns";
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import moment from "moment";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -65,18 +64,6 @@ const agendaHeaderFormat = ({ start }: { start: Date; end: Date }) => {
 
 // Custom navigation components
 const CustomToolbar = (toolbar: ToolbarProps) => {
-  const goToBack = () => {
-    toolbar.onNavigate("PREV");
-  };
-
-  const goToNext = () => {
-    toolbar.onNavigate("NEXT");
-  };
-
-  const goToCurrent = () => {
-    toolbar.onNavigate("TODAY");
-  };
-
   const switchToDay = () => {
     if (toolbar.onView) {
       toolbar.onView("day");
@@ -91,30 +78,7 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
 
   return (
     <div className="mb-4 flex items-center justify-between px-2">
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={goToBack}
-          className="rounded-md p-2 hover:bg-gray-100"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={goToCurrent}
-          className="rounded-md p-2 hover:bg-gray-100"
-        >
-          <RotateCcw className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
-          onClick={goToNext}
-          className="rounded-md p-2 hover:bg-gray-100"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-      <span className="font-medium">{toolbar.label}</span>
+      <span className="font-medium">&nbsp;</span>
       <div className="flex gap-2">
         <button
           type="button"
@@ -172,18 +136,8 @@ export function BigCalendarSchedule({
     let [endHours] = dayDuration.end.split(":").map(Number);
     if (endHours === 0) endHours = 24; // Handle midnight as 24:00
 
-    const filteredSchedule = schedule.filter((item) => {
-      // Filter out events that are completely outside the day boundaries
-      const eventEnd = item.startTime + item.duration;
-      return !(item.startTime >= endHours || eventEnd <= startHours);
-    });
-
-    // If all events were filtered out, return empty array to prevent invalid array length error
-    if (filteredSchedule.length === 0) {
-      return [];
-    }
-
-    return filteredSchedule.map((item) => {
+    // Instead of filtering events completely, adjust them to fit within the day boundaries
+    return schedule.map((item) => {
       // Ensure startTime is within valid bounds after dayDuration changes
       const adjustedStartTime = Math.max(
         startHours,
@@ -520,8 +474,59 @@ export function BigCalendarSchedule({
       date.setMinutes(minutes);
     }
 
+    // Ensure maxTime is at least 1 hour after minTime to avoid invalid array length error
+    const minHours = Number.parseInt(dayDuration.start.split(":")[0], 10);
+    const minMinutes = Number.parseInt(dayDuration.start.split(":")[1], 10);
+
+    if (
+      date.getHours() < minHours ||
+      (date.getHours() === minHours && date.getMinutes() <= minMinutes)
+    ) {
+      // If max time is before or equal to min time, set it to min time + 1 hour
+      date.setHours(minHours + 1);
+      date.setMinutes(minMinutes);
+    }
+
     return date;
-  }, [dayDuration.end]);
+  }, [dayDuration.start, dayDuration.end]);
+
+  // Create a working time range that's valid for the calendar
+  const ensureValidTimeRange = useCallback(() => {
+    const [startHours, startMinutes] = dayDuration.start.split(":").map(Number);
+    const [endHours, endMinutes] = dayDuration.end.split(":").map(Number);
+
+    // Convert to minutes for easier comparison
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    let endTotalMinutes = endHours * 60 + endMinutes;
+
+    // If end is 00:00, treat it as 24:00
+    if (endHours === 0 && endMinutes === 0) {
+      endTotalMinutes = 24 * 60;
+    }
+
+    // If the difference is less than 60 minutes (1 hour)
+    if (endTotalMinutes - startTotalMinutes < 60) {
+      console.warn("Day duration too short, adjusting to minimum 1 hour");
+
+      // Create a valid 1-hour range
+      const newEndHours = startHours + 1;
+
+      return {
+        validMin: minTime,
+        validMax: (() => {
+          const date = new Date();
+          date.setHours(newEndHours);
+          date.setMinutes(startMinutes);
+          return date;
+        })(),
+      };
+    }
+
+    return { validMin: minTime, validMax: maxTime };
+  }, [dayDuration, minTime, maxTime]);
+
+  // Get validated time range
+  const { validMin, validMax } = ensureValidTimeRange();
 
   // Validate the schedule to ensure all events fit within the day duration
   useEffect(() => {
@@ -539,8 +544,36 @@ export function BigCalendarSchedule({
       console.warn(
         "Some events fall outside the day duration and may not display correctly",
       );
+
+      // Automatically adjust events to fit within new boundaries
+      const adjustedSchedule = schedule.map((item) => {
+        let startTime = item.startTime;
+        let duration = item.duration;
+
+        // Adjust start time if it's before the day start
+        if (startTime < startTimeHours) {
+          startTime = startTimeHours;
+        }
+
+        // Adjust duration if it extends past the day end
+        const eventEnd = startTime + duration;
+        if (eventEnd > endTimeHours) {
+          duration = Math.max(0.5, endTimeHours - startTime);
+        }
+
+        return {
+          ...item,
+          startTime,
+          duration,
+        };
+      });
+
+      // Only update if there are actual changes
+      if (JSON.stringify(adjustedSchedule) !== JSON.stringify(schedule)) {
+        setSchedule(adjustedSchedule);
+      }
     }
-  }, [schedule, dayDuration]);
+  }, [schedule, dayDuration, setSchedule]);
 
   return (
     <div className="h-[calc(100vh-200px)] overflow-hidden print:h-full">
@@ -560,8 +593,8 @@ export function BigCalendarSchedule({
         onSelectSlot={onSelectSlot}
         onSelectEvent={onSelectEvent}
         onDoubleClickEvent={onDoubleClickEvent}
-        min={minTime}
-        max={maxTime}
+        min={validMin}
+        max={validMax}
         eventPropGetter={getEventStyles}
         components={{
           toolbar: CustomToolbar,
@@ -667,6 +700,12 @@ export function BigCalendarSchedule({
         .rbc-custom-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
           font-size: 0.8rem;
           padding: 4px 6px;
+        }
+        
+        /* Hide date column in agenda view */
+        .rbc-agenda-view table.rbc-agenda-table th:first-child,
+        .rbc-agenda-view table.rbc-agenda-table .rbc-agenda-date-cell {
+          display: none;
         }
       `}</style>
     </div>
