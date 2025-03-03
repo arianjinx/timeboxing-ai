@@ -1,13 +1,16 @@
 "use client";
 import { generateSchedule, generateTopDailyGoals } from "@/app/actions";
 import type { ScheduleItem } from "@/app/dto";
-import { BigCalendarSchedule } from "@/components/big-calendar-schedule";
+import {
+  BigCalendarSchedule,
+  type BigCalendarScheduleRef,
+} from "@/components/big-calendar-schedule";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Printer, Settings, WandSparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function TimeboxApp() {
@@ -24,6 +27,9 @@ export default function TimeboxApp() {
     start: "05:00",
     end: "21:00",
   });
+
+  // Add ref for calendar
+  const calendarRef = useRef<BigCalendarScheduleRef>(null);
 
   // Load settings from localStorage on component mount
   useEffect(() => {
@@ -71,6 +77,7 @@ export default function TimeboxApp() {
     // Setup print event listeners for better print experience
     const beforePrint = () => {
       document.body.classList.add("print-show-only-events");
+      // We no longer need to switch views here since we do it in our custom print button
     };
 
     const afterPrint = () => {
@@ -251,6 +258,7 @@ export default function TimeboxApp() {
               dayDuration={dayDuration}
               date={date}
               setDate={setDate}
+              ref={calendarRef}
             />
           </div>
         </div>
@@ -258,9 +266,20 @@ export default function TimeboxApp() {
 
       {/* Print Button */}
       <div className="mx-auto mt-4 flex max-w-7xl justify-end print:hidden">
-        <Button onClick={() => window.print()} variant="default">
+        <Button
+          onClick={() => {
+            // First switch to agenda view
+            calendarRef.current?.switchToAgendaView();
+
+            // Wait a moment for the view to update before showing print dialog
+            setTimeout(() => {
+              window.print();
+            }, 500);
+          }}
+          variant="default"
+        >
           <Printer className="mr-2 h-4 w-4" />
-          Print / Save as PDF
+          Print Schedule
         </Button>
       </div>
 

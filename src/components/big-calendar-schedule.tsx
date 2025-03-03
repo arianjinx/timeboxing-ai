@@ -3,7 +3,14 @@
 import type { ScheduleItem } from "@/app/dto";
 import { addHours, format, startOfDay } from "date-fns";
 import moment from "moment";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import {
   Calendar,
   type EventPropGetter,
@@ -107,17 +114,32 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
   );
 };
 
-export function BigCalendarSchedule({
-  schedule,
-  setSchedule,
-  dayDuration,
-  date,
-  setDate,
-}: BigCalendarScheduleProps) {
+// Define interface for the exposed methods
+export interface BigCalendarScheduleRef {
+  switchToAgendaView: () => void;
+}
+
+export const BigCalendarSchedule = forwardRef<
+  BigCalendarScheduleRef,
+  BigCalendarScheduleProps
+>(function BigCalendarSchedule(
+  { schedule, setSchedule, dayDuration, date, setDate },
+  ref,
+) {
   // State to track currently selected event for deletion
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null,
   );
+
+  // Add state for current view
+  const [view, setView] = useState<View>("day");
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    switchToAgendaView: () => {
+      setView("agenda");
+    },
+  }));
 
   // Add state for dialog visibility and input value
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -628,6 +650,8 @@ export function BigCalendarSchedule({
         min={validMin}
         max={validMax}
         eventPropGetter={getEventStyles}
+        view={view}
+        onView={setView}
         components={{
           toolbar: CustomToolbar,
         }}
@@ -685,4 +709,4 @@ export function BigCalendarSchedule({
       </Dialog>
     </div>
   );
-}
+});
