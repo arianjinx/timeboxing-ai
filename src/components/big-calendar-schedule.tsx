@@ -136,7 +136,6 @@ export function BigCalendarSchedule({
     let [endHours] = dayDuration.end.split(":").map(Number);
     if (endHours === 0) endHours = 24; // Handle midnight as 24:00
 
-    // Instead of filtering events completely, adjust them to fit within the day boundaries
     return schedule.map((item) => {
       // Ensure startTime is within valid bounds after dayDuration changes
       const adjustedStartTime = Math.max(
@@ -153,7 +152,9 @@ export function BigCalendarSchedule({
 
       // Create start date by adding hours to base date
       const start = addHours(baseDate, adjustedStartTime);
+
       // Create end date by adding duration to start date
+      // Special handling for events ending at midnight
       const end = addHours(start, adjustedDuration);
 
       return {
@@ -220,7 +221,17 @@ export function BigCalendarSchedule({
 
       // Calculate hours and duration with support for half hours
       const startHour = start.getHours() + (start.getMinutes() >= 30 ? 0.5 : 0);
-      const endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+      let endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+
+      // Special handling for midnight
+      if (endHour === 0) {
+        if (end.getMinutes() === 0) {
+          endHour = 24; // Treat midnight as 24:00
+        } else {
+          // For times like 00:30, calculate as next day early morning
+          endHour = 0.5;
+        }
+      }
 
       // Prevent events with the same start and end time
       if (startHour === endHour) {
@@ -286,7 +297,17 @@ export function BigCalendarSchedule({
 
       // Calculate hours and duration with support for half hours
       const startHour = start.getHours() + (start.getMinutes() >= 30 ? 0.5 : 0);
-      const endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+      let endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+
+      // Special handling for midnight
+      if (endHour === 0) {
+        if (end.getMinutes() === 0) {
+          endHour = 24; // Treat midnight as 24:00
+        } else {
+          // For times like 00:30, calculate as next day early morning
+          endHour = 0.5;
+        }
+      }
 
       // Prevent events with the same start and end time
       if (startHour === endHour) {
@@ -351,7 +372,17 @@ export function BigCalendarSchedule({
 
       // Support half-hour precision
       const startHour = start.getHours() + (start.getMinutes() >= 30 ? 0.5 : 0);
-      const endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+      let endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+
+      // Special handling for midnight
+      if (endHour === 0) {
+        if (end.getMinutes() === 0) {
+          endHour = 24; // Treat midnight as 24:00
+        } else {
+          // For times like 00:30, calculate as next day early morning
+          endHour = 0.5;
+        }
+      }
 
       // Prevent events with the same start and end time
       if (startHour === endHour) {
@@ -466,9 +497,10 @@ export function BigCalendarSchedule({
 
     // Handle midnight (00:00) properly
     if (hours === 0 && minutes === 0) {
-      // Set to 23:59 instead of trying to represent 24:00
+      // Set to 23:59:59 to allow scheduling until midnight
       date.setHours(23);
       date.setMinutes(59);
+      date.setSeconds(59);
     } else {
       date.setHours(hours);
       date.setMinutes(minutes);
@@ -615,6 +647,7 @@ export function BigCalendarSchedule({
         // Add custom CSS to style the time slots for hourly visual guidelines
         className="rbc-custom-calendar"
         dayLayoutAlgorithm="no-overlap" // Add this to prevent events from stretching
+        allDayAccessor={() => false} // Hide the all day toolbar
       />
 
       {/* Edit Activity Dialog */}
@@ -650,64 +683,6 @@ export function BigCalendarSchedule({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Custom styles for calendar time slots */}
-      <style jsx global>{`
-        /* Highlight full hour slots with darker lines */
-        .rbc-custom-calendar .rbc-time-header-content {
-          border-left: 1px solid #ddd;
-        }
-        
-        .rbc-custom-calendar .rbc-event-content {
-          font-weight: 500;
-          font-size: 0.7rem;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          word-break: break-word;
-        }
-        
-        /* Adjust selection styling - make border more neutral */
-        .rbc-custom-calendar .rbc-event.rbc-selected {
-          box-shadow: 0 0 0 2px #cbd5e1 !important; /* Changed to a lighter, more neutral gray color */
-          outline: none !important; /* Remove any default outline */
-          border-color: #cbd5e1 !important; /* Ensure border is also neutral */
-        }
-        
-        /* Remove any blue focus outlines on selected events */
-        .rbc-custom-calendar .rbc-event:focus {
-          outline: none !important;
-        }
-        
-        /* Hide the current time indicator */
-        .rbc-custom-calendar .rbc-current-time-indicator {
-          display: none !important;
-        }
-        
-        // /* Increase the size of 30-minute blocks */
-        .rbc-custom-calendar .rbc-timeslot-group {
-          min-height: 85px;
-        }
-        
-        // /* Ensure time label in gutter is smaller too */
-        .rbc-custom-calendar .rbc-time-gutter .rbc-timeslot-group .rbc-label {
-          font-size: 0.75rem;
-        }
-        
-        // /* Make agenda view text smaller too */
-        .rbc-custom-calendar .rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
-          font-size: 0.8rem;
-          padding: 4px 6px;
-        }
-        
-        /* Hide date column in agenda view */
-        .rbc-agenda-view table.rbc-agenda-table th:first-child,
-        .rbc-agenda-view table.rbc-agenda-table .rbc-agenda-date-cell {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }
