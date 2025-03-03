@@ -250,6 +250,8 @@ export default function TimeboxApp() {
               schedule={schedule}
               setSchedule={setSchedule}
               dayDuration={dayDuration}
+              date={date}
+              setDate={setDate}
             />
           </div>
         </div>

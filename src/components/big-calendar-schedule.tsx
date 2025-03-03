@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   type EventPropGetter,
+  type View,
   momentLocalizer,
 } from "react-big-calendar";
 import type { EventInteractionArgs } from "react-big-calendar/lib/addons/dragAndDrop";
@@ -45,12 +46,16 @@ interface BigCalendarScheduleProps {
   schedule: ScheduleItem[];
   setSchedule: (schedule: ScheduleItem[]) => void;
   dayDuration: { start: string; end: string };
+  date?: Date;
+  setDate?: (date: Date) => void;
 }
 
 // Define toolbar props type
 interface ToolbarProps {
   onNavigate: (action: "PREV" | "NEXT" | "TODAY") => void;
   label: string;
+  onView?: (view: View) => void;
+  view?: View;
 }
 
 // Custom navigation components
@@ -65,6 +70,18 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
 
   const goToCurrent = () => {
     toolbar.onNavigate("TODAY");
+  };
+
+  const switchToDay = () => {
+    if (toolbar.onView) {
+      toolbar.onView("day");
+    }
+  };
+
+  const switchToAgenda = () => {
+    if (toolbar.onView) {
+      toolbar.onView("agenda");
+    }
   };
 
   return (
@@ -93,7 +110,30 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
         </button>
       </div>
       <span className="font-medium">{toolbar.label}</span>
-      <div className="w-[100px]" />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={switchToDay}
+          className={`rounded-md px-3 py-1 text-sm ${
+            toolbar.view === "day"
+              ? "bg-blue-100 text-blue-700"
+              : "hover:bg-gray-100"
+          }`}
+        >
+          Day
+        </button>
+        <button
+          type="button"
+          onClick={switchToAgenda}
+          className={`rounded-md px-3 py-1 text-sm ${
+            toolbar.view === "agenda"
+              ? "bg-blue-100 text-blue-700"
+              : "hover:bg-gray-100"
+          }`}
+        >
+          Agenda
+        </button>
+      </div>
     </div>
   );
 };
@@ -102,6 +142,8 @@ export function BigCalendarSchedule({
   schedule,
   setSchedule,
   dayDuration,
+  date,
+  setDate,
 }: BigCalendarScheduleProps) {
   // State to track currently selected event for deletion
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
@@ -198,6 +240,12 @@ export function BigCalendarSchedule({
       // Calculate hours and duration with support for half hours
       const startHour = start.getHours() + (start.getMinutes() >= 30 ? 0.5 : 0);
       const endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+
+      // Prevent events with the same start and end time
+      if (startHour === endHour) {
+        return; // Don't allow events with zero duration
+      }
+
       const duration = Math.max(0.5, endHour - startHour); // Minimum duration of 30 minutes
 
       // Get time boundaries
@@ -259,6 +307,11 @@ export function BigCalendarSchedule({
       const startHour = start.getHours() + (start.getMinutes() >= 30 ? 0.5 : 0);
       const endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
 
+      // Prevent events with the same start and end time
+      if (startHour === endHour) {
+        return; // Don't allow events with zero duration
+      }
+
       // Get time boundaries
       const [dayStartHour] = dayDuration.start.split(":").map(Number);
       let [dayEndHour] = dayDuration.end.split(":").map(Number);
@@ -318,6 +371,11 @@ export function BigCalendarSchedule({
       // Support half-hour precision
       const startHour = start.getHours() + (start.getMinutes() >= 30 ? 0.5 : 0);
       const endHour = end.getHours() + (end.getMinutes() >= 30 ? 0.5 : 0);
+
+      // Prevent events with the same start and end time
+      if (startHour === endHour) {
+        return; // Don't allow events with zero duration
+      }
 
       // Enforce minimum duration
       const duration = Math.max(0.5, endHour - startHour);
@@ -464,7 +522,8 @@ export function BigCalendarSchedule({
         events={calendarEvents}
         defaultView="day"
         views={{ day: true, agenda: true }}
-        defaultDate={new Date()}
+        date={date || new Date()}
+        onNavigate={(newDate) => setDate?.(newDate)}
         step={30} // Keep 30-minute steps for events
         timeslots={2} // Use 2 slots per "step" (which gives us 30 mins per slot)
         onEventDrop={onEventDrop}
@@ -488,6 +547,7 @@ export function BigCalendarSchedule({
         // Add custom CSS to style the time slots for hourly visual guidelines
         className="rbc-custom-calendar"
         dayLayoutAlgorithm="no-overlap" // Add this to prevent events from stretching
+        getNow={() => new Date(0)} // Disable current time indicator by setting it to epoch (1970)
       />
 
       {/* Edit Activity Dialog */}
@@ -544,13 +604,24 @@ export function BigCalendarSchedule({
         
         /* Adjust selection styling - make border more neutral */
         .rbc-custom-calendar .rbc-event.rbc-selected {
-          background-color: inherit !important;
           box-shadow: 0 0 0 2px #cbd5e1 !important; /* Changed to a lighter, more neutral gray color */
+          outline: none !important; /* Remove any default outline */
+          border-color: #cbd5e1 !important; /* Ensure border is also neutral */
+        }
+        
+        /* Remove any blue focus outlines on selected events */
+        .rbc-custom-calendar .rbc-event:focus {
+          outline: none !important;
+        }
+        
+        /* Hide the current time indicator */
+        .rbc-custom-calendar .rbc-current-time-indicator {
+          display: none !important;
         }
         
         // /* Increase the size of 30-minute blocks */
         .rbc-custom-calendar .rbc-timeslot-group {
-          min-height: 50px;
+          min-height: 85px;
         }
         
         // /* Ensure time label in gutter is smaller too */
