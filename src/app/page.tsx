@@ -20,6 +20,10 @@ export default function TimeboxApp() {
   const [name, setName] = useState("");
   const [northStar, setNorthStar] = useState("");
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [workingDuration, setWorkingDuration] = useState(45); // Default 45 minutes
+  const [profile, setProfile] = useState("");
+  const [hobbies, setHobbies] = useState("");
+  const [intermittentFasting, setIntermittentFasting] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,6 +55,25 @@ export default function TimeboxApp() {
         toast.error("Failed to load saved time settings");
       }
     }
+
+    // Load additional settings
+    const storedWorkingDuration = localStorage.getItem(
+      "timebox-workingDuration",
+    );
+    if (storedWorkingDuration)
+      setWorkingDuration(Number(storedWorkingDuration));
+
+    const storedProfile = localStorage.getItem("timebox-profile");
+    if (storedProfile) setProfile(storedProfile);
+
+    const storedHobbies = localStorage.getItem("timebox-hobbies");
+    if (storedHobbies) setHobbies(storedHobbies);
+
+    const storedIntermittentFasting = localStorage.getItem(
+      "timebox-intermittentFasting",
+    );
+    if (storedIntermittentFasting)
+      setIntermittentFasting(storedIntermittentFasting === "true");
   }, []);
 
   // Add print-specific styles when component mounts
@@ -110,6 +133,8 @@ export default function TimeboxApp() {
       const result = await generateTopDailyGoals({
         northStar,
         brainDump,
+        profile,
+        hobbies,
       });
 
       if (result.topGoals && result.topGoals.length > 0) {
@@ -141,6 +166,10 @@ export default function TimeboxApp() {
         brainDump,
         topGoals,
         dayDuration,
+        workingDuration,
+        profile,
+        hobbies,
+        intermittentFasting,
       });
 
       if (result.schedule && result.schedule.length > 0) {
@@ -292,6 +321,14 @@ export default function TimeboxApp() {
         setName={setName}
         northStar={northStar}
         setNorthStar={setNorthStar}
+        workingDuration={workingDuration}
+        setWorkingDuration={setWorkingDuration}
+        profile={profile}
+        setProfile={setProfile}
+        hobbies={hobbies}
+        setHobbies={setHobbies}
+        intermittentFasting={intermittentFasting}
+        setIntermittentFasting={setIntermittentFasting}
       />
     </div>
   );

@@ -24,6 +24,15 @@ export async function generateTopDailyGoals(
     topGoals: z.array(z.string()),
   });
 
+  // Build additional context if available
+  const profileContext = params.profile
+    ? `\nUser profile: "${params.profile}"`
+    : "";
+  const hobbiesContext = params.hobbies
+    ? `\nUser hobbies and interests: "${params.hobbies}"`
+    : "";
+  const additionalContext = profileContext + hobbiesContext;
+
   // Use generateObject to generate the top daily goals
   const result = await generateObject({
     model,
@@ -31,9 +40,8 @@ export async function generateTopDailyGoals(
     schemaDescription:
       "Generate top 3 daily goals based on brain dump and north star.",
     schema: topGoalsResponseSchema,
-    prompt: `Based on the user's north star: "${params.northStar}" and brain dump: "${params.brainDump}", 
-    generate 3 focused daily goals.
-    DO NOT return in markdown format.`,
+    prompt: `Based on the user's north star: "${params.northStar}" and brain dump: "${params.brainDump}", ${additionalContext}
+    generate 3 focused daily goals. DO NOT return in markdown format.`,
   });
 
   // Return the same format as the current dummy output
@@ -53,6 +61,22 @@ export async function generateSchedule(params: GenerateScheduleParams) {
     schedule: z.array(scheduleItemSchema),
   });
 
+  // Define working duration (default to 45 min if not provided)
+  // const workingDuration = params.workingDuration || 45;
+
+  // Build additional context from user profile if available
+  const profileContext = params.profile
+    ? `\nUser profile: "${params.profile}"`
+    : "";
+  const hobbiesContext = params.hobbies
+    ? `\nUser hobbies and interests: "${params.hobbies}"`
+    : "";
+  const fastingContext = params.intermittentFasting
+    ? "\nUser practices intermittent fasting, so avoid scheduling meal times too close together and consider a later breakfast/earlier dinner window."
+    : "";
+
+  const additionalContext = profileContext + hobbiesContext + fastingContext;
+
   // Use generateObject to generate the schedule
   const result = await generateObject({
     model,
@@ -63,6 +87,7 @@ export async function generateSchedule(params: GenerateScheduleParams) {
     prompt: `Based on the user's north star: "${params.northStar}", 
 brain dump: "${params.brainDump}", 
 and top goals: "${params.topGoals.join(", ")}", 
+${additionalContext}
 generate a realistic daily schedule applying timeboxing principles:
 
 1. Create dedicated 1-hour minimum time blocks for each of the top goals, with clear start and end times

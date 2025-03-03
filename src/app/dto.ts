@@ -3,6 +3,8 @@ import { z } from "zod";
 export const generateTopDailyGoalsSchema = z.object({
   northStar: z.string(),
   brainDump: z.string(),
+  profile: z.string().optional(),
+  hobbies: z.string().optional(),
 });
 
 export type GenerateTopDailyGoalsParams = z.infer<
@@ -17,6 +19,10 @@ export const generateScheduleSchema = z.object({
   }),
   brainDump: z.string(),
   topGoals: z.array(z.string()),
+  workingDuration: z.number().int().min(15).max(120).optional(),
+  profile: z.string().optional(),
+  hobbies: z.string().optional(),
+  intermittentFasting: z.boolean().optional(),
 });
 
 export type GenerateScheduleParams = z.infer<typeof generateScheduleSchema>;
