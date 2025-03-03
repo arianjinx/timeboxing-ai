@@ -58,6 +58,11 @@ interface ToolbarProps {
   view?: View;
 }
 
+// Create custom formatter for the agenda view header to show the date in the desired format
+const agendaHeaderFormat = ({ start }: { start: Date; end: Date }) => {
+  return format(start, "EEEE, MMMM d, yyyy");
+};
+
 // Custom navigation components
 const CustomToolbar = (toolbar: ToolbarProps) => {
   const goToBack = () => {
@@ -564,6 +569,14 @@ export function BigCalendarSchedule({
         formats={{
           timeGutterFormat: (date: Date) => format(date, "HH:mm"),
           eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
+            `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`,
+          dayHeaderFormat: (date: Date) => format(date, "EEEE, MMMM d, yyyy"),
+          dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
+            `${format(start, "EEEE, MMMM d, yyyy")} - ${format(end, "EEEE, MMMM d, yyyy")}`,
+          agendaHeaderFormat,
+          agendaDateFormat: (date: Date) => format(date, "EEEE, MMMM d, yyyy"),
+          agendaTimeFormat: (date: Date) => format(date, "HH:mm"),
+          agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
             `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`,
         }}
         // Add custom CSS to style the time slots for hourly visual guidelines
