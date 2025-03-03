@@ -1,8 +1,8 @@
 "use client";
 import { generateSchedule, generateTopDailyGoals } from "@/app/actions";
 import type { ScheduleItem } from "@/app/dto";
+import { BigCalendarSchedule } from "@/components/big-calendar-schedule";
 import { SettingsDialog } from "@/components/settings-dialog";
-import { TimeboxSchedule } from "@/components/timebox-schedule";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -231,7 +231,9 @@ export default function TimeboxApp() {
           {/* Right Column - Schedule */}
           <div className="relative p-4 md:p-6 print:p-4">
             <div className="mb-6 flex items-center justify-between print:hidden">
-              <h2 className="font-medium">Schedule</h2>
+              <div className="flex items-center">
+                <h2 className="font-medium">Schedule</h2>
+              </div>
               <Button
                 onClick={generateScheduleHandler}
                 disabled={isGenerating}
@@ -244,11 +246,10 @@ export default function TimeboxApp() {
               </Button>
             </div>
 
-            <TimeboxSchedule
+            <BigCalendarSchedule
               schedule={schedule}
               setSchedule={setSchedule}
               dayDuration={dayDuration}
-              topGoals={topGoals}
             />
           </div>
         </div>

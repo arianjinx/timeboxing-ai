@@ -73,7 +73,7 @@ generate a realistic daily schedule applying timeboxing principles:
 6. Prioritize the most important/challenging tasks during peak productivity hours (typically morning)
 7. ONLY schedule activities between the user's preferred hours of ${params.dayDuration.start} and ${params.dayDuration.end}
 
-IMPORTANT: Each activity block MUST be a minimum of 1 hour in duration. Do NOT suggest any activities shorter than 1 hour.
+IMPORTANT: Each activity block MUST be a minimum of 30 minutes in duration. Do NOT suggest any activities shorter than 30 minutes.
 IMPORTANT: Only create schedule items that fall within the user's preferred time window of ${params.dayDuration.start} to ${params.dayDuration.end}.
 DO NOT return in markdown format.
 The startTime should be a number from 0 to 23, representing hours in a 24-hour day.
