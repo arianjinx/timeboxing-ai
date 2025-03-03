@@ -90,7 +90,7 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
         <button
           type="button"
           onClick={switchToDay}
-          className={`rounded-md px-3 py-1 text-sm ${
+          className={`cursor-pointer rounded-md px-3 py-1 text-sm ${
             toolbar.view === "day"
               ? "bg-blue-100 text-blue-700"
               : "hover:bg-gray-100"
@@ -101,7 +101,7 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
         <button
           type="button"
           onClick={switchToAgenda}
-          className={`rounded-md px-3 py-1 text-sm ${
+          className={`cursor-pointer rounded-md px-3 py-1 text-sm ${
             toolbar.view === "agenda"
               ? "bg-blue-100 text-blue-700"
               : "hover:bg-gray-100"
