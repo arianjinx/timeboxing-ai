@@ -7,8 +7,19 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Timeboxing App - Daily Schedule",
+  title: "Timeboxing AI - Daily Schedule",
   description: "Organize your day with AI-powered scheduling",
+  openGraph: {
+    title: "Timeboxing AI - Daily Schedule",
+    description: "Organize your day with AI-powered scheduling",
+    type: "website",
+    siteName: "Timeboxing AI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Timeboxing AI - Daily Schedule",
+    description: "Organize your day with AI-powered scheduling",
+  },
 };
 
 export default function RootLayout({

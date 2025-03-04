@@ -266,7 +266,7 @@ export default function TimeboxingApp() {
         <div className="flex items-center justify-between border-b p-4 md:p-6 print:hidden">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-gray-500 print:text-black" />
-            <h1 className="font-semibold text-xl">Timeboxing App</h1>
+            <h1 className="font-semibold text-xl">Timeboxing AI</h1>
           </div>
           <Button
             variant="ghost"
