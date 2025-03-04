@@ -203,7 +203,11 @@ export default function TimeboxingApp() {
       }
     } catch (error) {
       console.error("Failed to generate top goals from server:", error);
-      toast.error("Failed to generate top goals. Please try again.");
+      if (error instanceof Error) {
+        toast.error(`Failed to generate top goals. Reason: ${error.message}`);
+      } else {
+        toast.error("Failed to generate top goals. Please try again.");
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -243,7 +247,11 @@ export default function TimeboxingApp() {
       }
     } catch (error) {
       console.error("Failed to generate schedule from server:", error);
-      toast.error("Failed to generate schedule. Please try again.");
+      if (error instanceof Error) {
+        toast.error(`Failed to generate schedule. Reason: ${error.message}`);
+      } else {
+        toast.error("Failed to generate schedule. Please try again.");
+      }
     } finally {
       setIsGenerating(false);
     }

@@ -8,12 +8,31 @@ import {
 import { generateTopDailyGoalsSchema } from "@/app/dto";
 import type { GenerateTopDailyGoalsParams } from "@/app/dto";
 import { model } from "@/lib/model";
+import { rateLimit } from "@/lib/rate-limiter";
 import { generateObject } from "ai";
+import { headers } from "next/headers";
 import { z } from "zod";
+
+/**
+ * Get a unique identifier for the current request (IP address)
+ */
+async function getRequestIdentifier() {
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for") || "unknown";
+  return ip;
+}
 
 export async function generateTopDailyGoals(
   params: GenerateTopDailyGoalsParams,
 ) {
+  // Rate limit check
+  const identifier = await getRequestIdentifier();
+  const rateLimitResult = await rateLimit(identifier, "generateTopDailyGoals");
+
+  if (!rateLimitResult.success) {
+    throw new Error(rateLimitResult.error);
+  }
+
   const { success } = generateTopDailyGoalsSchema.safeParse(params);
   if (!success) {
     throw new Error("Invalid input");
@@ -70,6 +89,14 @@ The goals should be:
 }
 
 export async function generateSchedule(params: GenerateScheduleParams) {
+  // Rate limit check
+  const identifier = await getRequestIdentifier();
+  const rateLimitResult = await rateLimit(identifier, "generateSchedule");
+
+  if (!rateLimitResult.success) {
+    throw new Error(rateLimitResult.error);
+  }
+
   const { success } = generateScheduleSchema.safeParse(params);
   if (!success) {
     throw new Error("Invalid input");
