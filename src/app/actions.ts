@@ -37,14 +37,32 @@ export async function generateTopDailyGoals(
   const result = await generateObject({
     model,
     schemaName: "topDailyGoals",
-    schemaDescription:
-      "Generate top 3 daily goals based on brain dump and north star.",
+    schemaDescription: "Generate top 3 daily goals based on given context.",
     schema: topGoalsResponseSchema,
-    prompt: `Based on the user's north star: "${params.northStar}" and brain dump: "${params.brainDump}", ${additionalContext}
-    generate 3 focused daily goals. DO NOT return in markdown format.`,
+    prompt: `<task>
+I need you to generate 3 focused daily goals based on the user information delimited by triple backticks:
+
+\`\`\`
+North Star: "${params.northStar}"
+Brain Dump: "${params.brainDump}"${additionalContext}
+\`\`\`
+
+Follow these specific instructions in sequence:
+1. First, carefully analyze the user's north star (long-term vision) and brain dump (current thoughts/tasks)
+2. Identify the most important and impactful activities that align with the north star
+3. Prioritize tasks that will move the user closer to their long-term vision
+4. Select exactly 3 specific, actionable goals that can realistically be accomplished in a single day
+5. Ensure each goal is clear, concrete, and measurable
+
+The goals should be:
+- Specific and actionable (not vague)
+- Aligned with the user's north star
+- Realistic to accomplish in a single day
+- Focused on high-impact activities
+- Written in a concise, direct format
+</task>`,
   });
 
-  // Return the same format as the current dummy output
   return {
     topGoals: result.object.topGoals,
   };
@@ -72,86 +90,56 @@ export async function generateSchedule(params: GenerateScheduleParams) {
     ? "\nUser practices intermittent fasting, so avoid scheduling meal times too close together and consider a later breakfast/earlier dinner window."
     : "";
 
-  // Add date context if available
-  const dateContext = params.date
-    ? `\nThis schedule is for: ${new Date(params.date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`
-    : "";
-
-  const additionalContext =
-    profileContext + hobbiesContext + fastingContext + dateContext;
+  const additionalContext = profileContext + hobbiesContext + fastingContext;
 
   // Use generateObject to generate the schedule
   const result = await generateObject({
     model,
     schemaName: "dailySchedule",
-    schemaDescription:
-      "Generate a daily schedule based on the top goals, brain dump, and north star.",
+    schemaDescription: "Generate a daily schedule based on given context.",
     schema: scheduleResponseSchema,
-    prompt: `Based on the user's north star: "${params.northStar}", 
-brain dump: "${params.brainDump}", 
-and top goals: "${params.topGoals.join(", ")}", 
-${additionalContext}
-generate a realistic daily schedule applying timeboxing principles:
+    prompt: `<task>
+Generate a realistic daily schedule applying timeboxing principles based on the user's information delimited by triple backticks:
 
-1. Create dedicated 1-hour minimum time blocks for each of the top goals, with clear start and end times
-2. Include 1-hour rest/break blocks between intense focus sessions (research shows regular breaks improve productivity)
-3. Allocate at least one 1-hour block for physical activity/movement 
-4. Include at least one 1-2 hour leisure/entertainment block
-5. Consider grouping similar tasks into larger time blocks when appropriate (1+ hours each)
-6. Schedule the most important/challenging tasks during the user's Core Time (${params.coreTime.start} to ${params.coreTime.end}), which is when they are most active and productive
-7. ONLY schedule activities between the user's preferred hours of ${params.dayDuration.start} and ${params.dayDuration.end}
+\`\`\`
+Day Duration: "${params.dayDuration.start} to ${params.dayDuration.end}"
+Core Time: "${params.coreTime.start} to ${params.coreTime.end}"
+North Star: "${params.northStar}"
+Brain Dump: "${params.brainDump}"
+Top Goals: "${params.topGoals.join(", ")}"${additionalContext}
+\`\`\`
 
-IMPORTANT: Each activity block MUST be a minimum of 30 minutes in duration. Do NOT suggest any activities shorter than 30 minutes.
-IMPORTANT: Only create schedule items that fall within the user's preferred time window of ${params.dayDuration.start} to ${params.dayDuration.end}.
-DO NOT return in markdown format.
-The startTime should be a number from 0 to 23, representing hours in a 24-hour day.
-Make the schedule realistic by not overloading the day with too many tasks.`,
+Follow these specific instructions in sequence:
+1. First, analyze the user's top goals and identify the most important activities that will help achieve these goals
+2. Create dedicated 1-hour minimum time blocks for each of the top goals, with clear start and end times
+3. Include 1-hour rest/break blocks between intense focus sessions (research shows regular breaks improve productivity)
+4. Allocate at least one 1-hour block for physical activity/movement 
+5. Include at least one 1-2 hour leisure/entertainment block
+6. Consider grouping similar tasks into larger time blocks when appropriate (1+ hours each)
+7. Ensure the schedule is realistic and achievable, with appropriate transitions between activities
+8. Include time for meals and basic self-care activities
+
+The schedule should follow timeboxing principles, which means:
+- Each activity has a specific start and end time
+- Time is allocated in focused blocks
+- The day has a balanced mix of productive work, physical activity, and leisure
+- Activities are arranged to maximize energy levels throughout the day
+
+IMPORTANT: For the startTime field in each schedule item, you MUST use a number format where:
+- Whole hours are represented as integers (e.g., 9 for 9:00 AM, 14 for 2:00 PM)
+- Half hours are represented with .5 (e.g., 9.5 for 9:30 AM, 14.5 for 2:30 PM)
+- Only use whole numbers or .5 values - no other decimal values are allowed
+- The startTime must be within the day duration specified above
+
+For example:
+- 8:00 AM should be represented as startTime: 8
+- 8:30 AM should be represented as startTime: 8.5
+- 2:00 PM should be represented as startTime: 14
+- 2:30 PM should be represented as startTime: 14.5
+</task>`,
   });
 
-  // Return the same format as the current dummy output
   return {
     schedule: result.object.schedule,
-  };
-}
-
-const categorizeActivitySchema = z.object({
-  activity: z.string().min(1),
-  topGoals: z.array(z.string()),
-});
-
-export type CategorizeActivityParams = z.infer<typeof categorizeActivitySchema>;
-
-export async function categorizeActivity(params: CategorizeActivityParams) {
-  const { success } = categorizeActivitySchema.safeParse(params);
-  if (!success) {
-    throw new Error("Invalid input");
-  }
-
-  // Define the schema for the activity categorization response
-  const activityCategorySchema = z.object({
-    category: z.enum(["top-goal", "leisure", "physical", "default"]),
-  });
-
-  // Use generateObject to categorize the activity
-  const result = await generateObject({
-    model,
-    schemaName: "activityCategory",
-    schemaDescription: "Categorize an activity based on its description",
-    schema: activityCategorySchema,
-    prompt: `Categorize the following activity: "${params.activity}"
-
-Top goals provided by the user: ${params.topGoals.filter(Boolean).join(", ")}
-
-Categorize this activity into one of these types:
-1. "top-goal" - If it directly relates to one of the user's top goals
-2. "leisure" - If it's for relaxation, entertainment, breaks, or hobbies
-3. "physical" - If it involves exercise, physical activity, or movement
-4. "default" - If it doesn't fit clearly into the above categories
-
-Return only the category name as a string.`,
-  });
-
-  return {
-    category: result.object.category,
   };
 }
