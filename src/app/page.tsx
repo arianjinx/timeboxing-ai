@@ -6,14 +6,23 @@ import {
   type BigCalendarScheduleRef,
 } from "@/components/big-calendar-schedule";
 import { SettingsDialog } from "@/components/settings-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Printer, Settings, WandSparkles } from "lucide-react";
+import { useIsMounted } from "@/hooks/use-is-mounted";
+import {
+  AlertCircle,
+  Calendar,
+  Printer,
+  Settings,
+  WandSparkles,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function TimeboxingApp() {
+  const isMounted = useIsMounted();
   const [date, setDate] = useState(new Date());
   const [brainDump, setBrainDump] = useState("");
   const [topGoals, setTopGoals] = useState<string[]>(["", "", ""]);
@@ -31,6 +40,9 @@ export default function TimeboxingApp() {
     start: "05:00",
     end: "21:00",
   });
+
+  // Track if settings have been loaded
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Add ref for calendar
   const calendarRef = useRef<BigCalendarScheduleRef>(null);
@@ -79,6 +91,25 @@ export default function TimeboxingApp() {
     );
     if (storedIntermittentFasting)
       setIntermittentFasting(storedIntermittentFasting === "true");
+
+    // Mark settings as loaded
+    setSettingsLoaded(true);
+
+    // Check if essential personalization settings are empty and open settings dialog
+    const hasBasicSettings =
+      storedName && storedProfile && storedNorthStar && storedHobbies;
+    if (!hasBasicSettings) {
+      // Delay opening the dialog slightly to ensure the app has fully loaded
+      setTimeout(() => {
+        setIsSettingsOpen(true);
+        toast.info(
+          "Please complete your profile for better AI-generated schedules",
+          {
+            duration: 5000,
+          },
+        );
+      }, 500);
+    }
   }, []);
 
   // Separate useEffect to handle default core time when day duration changes
@@ -218,6 +249,9 @@ export default function TimeboxingApp() {
     }
   };
 
+  // Check if essential personalization settings are empty
+  const isPersonalizationEmpty = !name || !profile || !northStar || !hobbies;
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
       <div className="mx-auto max-w-7xl overflow-hidden rounded-xl bg-white shadow-sm print:rounded-none print:shadow-none">
@@ -230,16 +264,45 @@ export default function TimeboxingApp() {
             variant="ghost"
             size="icon"
             onClick={() => setIsSettingsOpen(true)}
-            className="print:hidden"
+            className={`print:hidden ${isMounted() && isPersonalizationEmpty ? "relative" : ""}`}
           >
             <Settings className="h-5 w-5" />
+            {isMounted() && isPersonalizationEmpty && settingsLoaded && (
+              <span className="-top-1 -right-1 absolute flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                !
+              </span>
+            )}
             <span className="sr-only">Settings</span>
           </Button>
         </div>
 
-        <div className="grid h-full grid-cols-1 md:grid-cols-2 print:grid-cols-2">
+        {isMounted() && isPersonalizationEmpty && settingsLoaded && (
+          <div className="container mx-auto px-4">
+            <Alert
+              variant="default"
+              className="my-3 border-amber-200 bg-amber-50 text-amber-800 print:hidden"
+            >
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Complete your profile for better results</AlertTitle>
+              <AlertDescription className="text-xs">
+                The AI needs to know about you to create a personalized
+                schedule.{" "}
+                <Button
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="h-auto p-0 font-medium"
+                  variant="link"
+                  size="sm"
+                >
+                  Open Settings
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        <div className="grid h-full grid-cols-1 md:grid-cols-2 md:divide-x print:grid-cols-2">
           {/* Left Column - Goals and Brain Dump */}
-          <div className="border-r p-4 md:p-6 print:p-4">
+          <div className="p-4 md:p-6 print:p-4">
             <div className="mb-6">
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-gray-500 text-sm">Day</p>
@@ -314,14 +377,24 @@ export default function TimeboxingApp() {
               </Button>
             </div>
 
-            <BigCalendarSchedule
-              schedule={schedule}
-              setSchedule={setSchedule}
-              dayDuration={dayDuration}
-              date={date}
-              setDate={setDate}
-              ref={calendarRef}
-            />
+            {/* Only render the calendar when the component is mounted to prevent layout shifts */}
+            {isMounted() ? (
+              <BigCalendarSchedule
+                schedule={schedule}
+                setSchedule={setSchedule}
+                dayDuration={dayDuration}
+                date={date}
+                setDate={setDate}
+                ref={calendarRef}
+              />
+            ) : (
+              <div className="flex h-[500px] items-center justify-center rounded-lg border border-dashed">
+                <div className="text-center text-gray-500">
+                  <Calendar className="mx-auto h-10 w-10 opacity-20" />
+                  <p className="mt-2">Loading calendar...</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

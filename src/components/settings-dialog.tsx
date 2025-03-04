@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -106,7 +107,7 @@ export function SettingsDialog({
         end: formattedEndTime,
       }));
 
-      alert(
+      toast.error(
         "End time must be at least 1 hour after start time. Adjusting automatically.",
       );
     }
@@ -281,7 +282,7 @@ export function SettingsDialog({
     ) {
       setCoreTime(updatedCoreTime);
       pendingCoreTime.current = updatedCoreTime;
-      alert(
+      toast.error(
         "Core Time must be within Day Duration and at least 1 hour long. Adjusting automatically.",
       );
     }
@@ -291,12 +292,13 @@ export function SettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
-        <DialogDescription>
-          Customize your settings to personalize your experience.
+        <DialogDescription className="mt-2">
+          Personalize your experience to get the most out of the AI-powered
+          scheduling.
         </DialogDescription>
 
         <Tabs defaultValue="personal" className="py-4">
@@ -317,51 +319,86 @@ export function SettingsDialog({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
+                className={!name ? "border-amber-300" : ""}
               />
+              {!name && (
+                <p className="text-amber-600 text-xs">
+                  Adding your name helps the AI personalize communications
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="profile">About You</Label>
               <p className="text-muted-foreground text-xs">
                 Tell us about yourself (professional background, key skills,
-                etc.)
+                etc.) -
+                <span className="font-medium text-blue-600">
+                  {" "}
+                  this helps the AI understand your work context
+                </span>
               </p>
               <Textarea
                 id="profile"
                 value={profile}
                 onChange={(e) => setProfile(e.target.value)}
                 placeholder="e.g., Software engineer with 5 years experience in web development, interested in AI and machine learning"
-                className="min-h-[80px]"
+                className={`min-h-[80px] ${!profile ? "border-amber-300" : ""}`}
               />
+              {!profile && (
+                <p className="text-amber-600 text-xs">
+                  Your professional background helps the AI suggest relevant
+                  work tasks
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="hobbies">Hobbies & Interests</Label>
               <p className="text-muted-foreground text-xs">
-                What activities do you enjoy outside of work?
+                What activities do you enjoy outside of work? -
+                <span className="font-medium text-blue-600">
+                  {" "}
+                  this helps the AI balance your schedule
+                </span>
               </p>
               <Textarea
                 id="hobbies"
                 value={hobbies}
                 onChange={(e) => setHobbies(e.target.value)}
                 placeholder="e.g., Photography, hiking, cooking, reading sci-fi novels"
-                className="min-h-[80px]"
+                className={`min-h-[80px] ${!hobbies ? "border-amber-300" : ""}`}
               />
+              {!hobbies && (
+                <p className="text-amber-600 text-xs">
+                  Sharing your interests helps the AI include personal time in
+                  your schedule
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="northStar">Your North Star</Label>
               <p className="text-muted-foreground text-xs">
-                What are your core values and long-term goals? This helps AI
-                prioritize your tasks.
+                What are your core values and long-term goals? -
+                <span className="font-medium text-blue-600">
+                  {" "}
+                  this is crucial for AI prioritization
+                </span>
               </p>
               <Textarea
                 id="northStar"
                 value={northStar}
                 onChange={(e) => setNorthStar(e.target.value)}
                 placeholder="e.g., Build a successful business while maintaining work-life balance and prioritizing health"
-                className="min-h-[80px]"
+                className={`min-h-[80px] ${!northStar ? "border-amber-300" : ""}`}
               />
+              {!northStar && (
+                <p className="text-amber-600 text-xs">
+                  Your north star guides the AI in aligning daily tasks with
+                  your long-term vision
+                </p>
+              )}
             </div>
           </TabsContent>
 
@@ -369,7 +406,11 @@ export function SettingsDialog({
             <div className="space-y-2">
               <Label htmlFor="dayStart">Day Duration</Label>
               <p className="text-muted-foreground text-xs">
-                Set your active hours for scheduling (minimum 1 hour range)
+                Set your active hours for scheduling (minimum 1 hour range) -
+                <span className="font-medium text-blue-600">
+                  {" "}
+                  helps the AI know when you&apos;re available
+                </span>
               </p>
               <div className="flex items-center gap-2">
                 <Input
@@ -391,8 +432,11 @@ export function SettingsDialog({
             <div className="space-y-2">
               <Label htmlFor="coreTimeStart">Core Time</Label>
               <p className="text-muted-foreground text-xs">
-                When are you most active and productive? (must be within day
-                duration)
+                When are you most active and productive? -
+                <span className="font-medium text-blue-600">
+                  {" "}
+                  the AI will schedule important tasks during this time
+                </span>
               </p>
               <div className="flex items-center gap-2">
                 <Input
@@ -429,7 +473,7 @@ export function SettingsDialog({
               </Label>
             </div>
             <p className="pl-6 text-muted-foreground text-xs">
-              This helps AI schedule meal breaks appropriately
+              This helps the AI schedule meal breaks appropriately
             </p>
           </TabsContent>
         </Tabs>

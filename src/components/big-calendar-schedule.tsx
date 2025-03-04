@@ -38,6 +38,39 @@ const localizer = momentLocalizer(moment); // or globalizeLocalizer
 // Create the DnD Calendar
 const DnDCalendar = withDragAndDrop(Calendar);
 
+// Custom NoEvents component for the agenda view
+const EmptyScheduleMessage = () => {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center">
+      <div className="mb-4 rounded-full bg-gray-100 p-4">
+        {/* biome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-10 w-10 text-gray-400"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-label="Calendar icon"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+      </div>
+      <h3 className="mb-2 font-medium text-gray-900 text-lg">
+        No events scheduled
+      </h3>
+      <p className="text-gray-500 text-sm">
+        Your schedule is empty. Click on the day view to add activities to your
+        schedule.
+      </p>
+    </div>
+  );
+};
+
 // Define our own types that won't conflict with any existing declarations
 interface CalendarEvent {
   id: string;
@@ -87,28 +120,20 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
     <div className="mb-4 flex items-center justify-between px-2">
       <span className="font-medium">&nbsp;</span>
       <div className="flex gap-2">
-        <button
+        <Button
           type="button"
           onClick={switchToDay}
-          className={`cursor-pointer rounded-md px-3 py-1 text-sm ${
-            toolbar.view === "day"
-              ? "bg-blue-100 text-blue-700"
-              : "hover:bg-gray-100"
-          }`}
+          variant={toolbar.view === "day" ? "default" : "outline"}
         >
           Day
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={switchToAgenda}
-          className={`cursor-pointer rounded-md px-3 py-1 text-sm ${
-            toolbar.view === "agenda"
-              ? "bg-blue-100 text-blue-700"
-              : "hover:bg-gray-100"
-          }`}
+          variant={toolbar.view === "agenda" ? "default" : "outline"}
         >
           Agenda
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -666,59 +691,94 @@ export const BigCalendarSchedule = forwardRef<
 
   return (
     <div className="h-[calc(100vh-200px)] overflow-hidden print:h-full">
-      <DnDCalendar
-        localizer={localizer}
-        events={calendarEvents}
-        defaultView="day"
-        views={{ day: true, agenda: true }}
-        date={date || new Date()}
-        onNavigate={(newDate) => {
-          if (setDate) {
-            setDate(newDate);
-          }
-        }}
-        step={30} // Keep 30-minute steps for events
-        timeslots={2} // Use 2 slots per "step" (which gives us 30 mins per slot)
-        onEventDrop={onEventDrop}
-        onEventResize={onEventResize}
-        resizable
-        selectable
-        onSelectSlot={onSelectSlot}
-        onSelectEvent={onSelectEvent}
-        onDoubleClickEvent={onDoubleClickEvent}
-        dayPropGetter={(dayDate: Date) => {
-          const isSelectedDate = date && isSameDay(dayDate, date);
-          return {
-            className: isSelectedDate ? "rbc-day-selected" : "",
-            style: isSelectedDate ? { backgroundColor: "#e0f2fe" } : {}, // light blue background
-          };
-        }}
-        min={validMin}
-        max={validMax}
-        eventPropGetter={getEventStyles}
-        view={view}
-        onView={setView}
-        components={{
-          toolbar: CustomToolbar,
-        }}
-        formats={{
-          timeGutterFormat: (date: Date) => format(date, "HH:mm"),
-          eventTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
-            `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`,
-          dayHeaderFormat: (date: Date) => format(date, "EEEE, MMMM d, yyyy"),
-          dayRangeHeaderFormat: ({ start, end }: { start: Date; end: Date }) =>
-            `${format(start, "EEEE, MMMM d, yyyy")} - ${format(end, "EEEE, MMMM d, yyyy")}`,
-          agendaHeaderFormat,
-          agendaDateFormat: (date: Date) => format(date, "EEEE, MMMM d, yyyy"),
-          agendaTimeFormat: (date: Date) => format(date, "HH:mm"),
-          agendaTimeRangeFormat: ({ start, end }: { start: Date; end: Date }) =>
-            `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`,
-        }}
-        // Add custom CSS to style the time slots for hourly visual guidelines
-        className="rbc-custom-calendar"
-        dayLayoutAlgorithm="no-overlap" // Add this to prevent events from stretching
-        allDayAccessor={() => false} // Hide the all day toolbar
-      />
+      {schedule.length === 0 && view === "agenda" ? (
+        <div className="flex h-full flex-col">
+          <div className="mb-4 flex items-center justify-between px-2">
+            <span className="font-medium">&nbsp;</span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => setView("day")}
+                variant="outline"
+              >
+                Day
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setView("agenda")}
+                variant="default"
+              >
+                Agenda
+              </Button>
+            </div>
+          </div>
+          <EmptyScheduleMessage />
+        </div>
+      ) : (
+        <DnDCalendar
+          localizer={localizer}
+          events={calendarEvents}
+          defaultView="day"
+          views={{ day: true, agenda: true }}
+          date={date || new Date()}
+          onNavigate={(newDate) => {
+            if (setDate) {
+              setDate(newDate);
+            }
+          }}
+          step={30} // Keep 30-minute steps for events
+          timeslots={2} // Use 2 slots per "step" (which gives us 30 mins per slot)
+          onEventDrop={onEventDrop}
+          onEventResize={onEventResize}
+          resizable
+          selectable
+          onSelectSlot={onSelectSlot}
+          onSelectEvent={onSelectEvent}
+          onDoubleClickEvent={onDoubleClickEvent}
+          dayPropGetter={(dayDate: Date) => {
+            const isSelectedDate = date && isSameDay(dayDate, date);
+            return {
+              className: isSelectedDate ? "rbc-day-selected" : "",
+              style: isSelectedDate ? { backgroundColor: "#e0f2fe" } : {}, // light blue background
+            };
+          }}
+          min={validMin}
+          max={validMax}
+          eventPropGetter={getEventStyles}
+          view={view}
+          onView={setView}
+          components={{
+            toolbar: CustomToolbar,
+          }}
+          formats={{
+            timeGutterFormat: (date: Date) => format(date, "HH:mm"),
+            eventTimeRangeFormat: ({
+              start,
+              end,
+            }: { start: Date; end: Date }) =>
+              `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`,
+            dayHeaderFormat: (date: Date) => format(date, "EEEE, MMMM d, yyyy"),
+            dayRangeHeaderFormat: ({
+              start,
+              end,
+            }: { start: Date; end: Date }) =>
+              `${format(start, "EEEE, MMMM d, yyyy")} - ${format(end, "EEEE, MMMM d, yyyy")}`,
+            agendaHeaderFormat,
+            agendaDateFormat: (date: Date) =>
+              format(date, "EEEE, MMMM d, yyyy"),
+            agendaTimeFormat: (date: Date) => format(date, "HH:mm"),
+            agendaTimeRangeFormat: ({
+              start,
+              end,
+            }: { start: Date; end: Date }) =>
+              `${format(start, "HH:mm")} - ${format(end, "HH:mm")}`,
+          }}
+          // Add custom CSS to style the time slots for hourly visual guidelines
+          className="rbc-custom-calendar"
+          dayLayoutAlgorithm="no-overlap" // Add this to prevent events from stretching
+          allDayAccessor={() => false} // Hide the all day toolbar
+        />
+      )}
 
       {/* Edit Activity Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
