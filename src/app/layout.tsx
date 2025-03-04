@@ -7,7 +7,7 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Timebox - Daily Schedule",
+  title: "Timeboxing App - Daily Schedule",
   description: "Organize your day with AI-powered scheduling",
 };
 

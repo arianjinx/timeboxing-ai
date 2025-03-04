@@ -13,7 +13,7 @@ import { Calendar, Printer, Settings, WandSparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-export default function TimeboxApp() {
+export default function TimeboxingApp() {
   const [date, setDate] = useState(new Date());
   const [brainDump, setBrainDump] = useState("");
   const [topGoals, setTopGoals] = useState<string[]>(["", "", ""]);
@@ -224,7 +224,7 @@ export default function TimeboxApp() {
         <div className="flex items-center justify-between border-b p-4 md:p-6 print:p-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-gray-500 print:text-black" />
-            <h1 className="font-semibold text-xl">Timebox</h1>
+            <h1 className="font-semibold text-xl">Timeboxing App</h1>
           </div>
           <Button
             variant="ghost"
