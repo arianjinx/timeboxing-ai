@@ -19,7 +19,10 @@ export const generateScheduleSchema = z.object({
   }),
   brainDump: z.string(),
   topGoals: z.array(z.string()),
-  workingDuration: z.number().int().min(15).max(120).optional(),
+  coreTime: z.object({
+    start: z.string(),
+    end: z.string(),
+  }),
   profile: z.string().optional(),
   hobbies: z.string().optional(),
   intermittentFasting: z.boolean().optional(),

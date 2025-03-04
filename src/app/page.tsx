@@ -20,7 +20,7 @@ export default function TimeboxApp() {
   const [name, setName] = useState("");
   const [northStar, setNorthStar] = useState("");
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [workingDuration, setWorkingDuration] = useState(45); // Default 45 minutes
+  const [coreTime, setCoreTime] = useState({ start: "09:00", end: "17:00" }); // Default core time 9am-5pm
   const [profile, setProfile] = useState("");
   const [hobbies, setHobbies] = useState("");
   const [intermittentFasting, setIntermittentFasting] = useState(false);
@@ -56,12 +56,17 @@ export default function TimeboxApp() {
       }
     }
 
-    // Load additional settings
-    const storedWorkingDuration = localStorage.getItem(
-      "timebox-workingDuration",
-    );
-    if (storedWorkingDuration)
-      setWorkingDuration(Number(storedWorkingDuration));
+    // Load core time
+    const storedCoreTime = localStorage.getItem("timebox-coreTime");
+    if (storedCoreTime) {
+      try {
+        const parsedCoreTime = JSON.parse(storedCoreTime);
+        setCoreTime(parsedCoreTime);
+      } catch (error) {
+        console.error("Failed to parse core time from localStorage", error);
+        toast.error("Failed to load saved core time settings");
+      }
+    }
 
     const storedProfile = localStorage.getItem("timebox-profile");
     if (storedProfile) setProfile(storedProfile);
@@ -75,6 +80,28 @@ export default function TimeboxApp() {
     if (storedIntermittentFasting)
       setIntermittentFasting(storedIntermittentFasting === "true");
   }, []);
+
+  // Separate useEffect to handle default core time when day duration changes
+  useEffect(() => {
+    // Only run this effect if there's no stored core time
+    if (!localStorage.getItem("timebox-coreTime")) {
+      const dayStartHours = Number.parseInt(dayDuration.start.split(":")[0]);
+      const dayEndHours = Number.parseInt(dayDuration.end.split(":")[0]);
+
+      // Default core time to start 4 hours after day start and end 4 hours before day end
+      // or 9am-5pm if that would be outside the day duration
+      const defaultCoreStart = Math.max(9, dayStartHours + 4);
+      const defaultCoreEnd = Math.min(
+        17,
+        dayEndHours - 4 > 0 ? dayEndHours - 4 : dayEndHours - 1,
+      );
+
+      setCoreTime({
+        start: `${defaultCoreStart.toString().padStart(2, "0")}:00`,
+        end: `${defaultCoreEnd.toString().padStart(2, "0")}:00`,
+      });
+    }
+  }, [dayDuration]);
 
   // Add print-specific styles when component mounts
   useEffect(() => {
@@ -166,7 +193,7 @@ export default function TimeboxApp() {
         brainDump,
         topGoals,
         dayDuration,
-        workingDuration,
+        coreTime,
         profile,
         hobbies,
         intermittentFasting,
@@ -321,8 +348,8 @@ export default function TimeboxApp() {
         setName={setName}
         northStar={northStar}
         setNorthStar={setNorthStar}
-        workingDuration={workingDuration}
-        setWorkingDuration={setWorkingDuration}
+        coreTime={coreTime}
+        setCoreTime={setCoreTime}
         profile={profile}
         setProfile={setProfile}
         hobbies={hobbies}

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useRef } from "react";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -27,8 +28,10 @@ interface SettingsDialogProps {
   setName: Dispatch<SetStateAction<string>>;
   northStar: string;
   setNorthStar: Dispatch<SetStateAction<string>>;
-  workingDuration: number;
-  setWorkingDuration: Dispatch<SetStateAction<number>>;
+  coreTime: { start: string; end: string };
+  setCoreTime: React.Dispatch<
+    React.SetStateAction<{ start: string; end: string }>
+  >;
   profile: string;
   setProfile: Dispatch<SetStateAction<string>>;
   hobbies: string;
@@ -46,8 +49,8 @@ export function SettingsDialog({
   setName,
   northStar,
   setNorthStar,
-  workingDuration,
-  setWorkingDuration,
+  coreTime,
+  setCoreTime,
   profile,
   setProfile,
   hobbies,
@@ -55,8 +58,27 @@ export function SettingsDialog({
   intermittentFasting,
   setIntermittentFasting,
 }: SettingsDialogProps) {
+  // Debounce timers
+  const dayDurationDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+  const coreTimeDebounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Track pending values for debouncing
+  const pendingDayDuration = useRef<{ start: string; end: string }>(
+    dayDuration,
+  );
+  const pendingCoreTime = useRef<{ start: string; end: string }>(coreTime);
+
+  // Update refs when props change
+  useEffect(() => {
+    pendingDayDuration.current = dayDuration;
+  }, [dayDuration]);
+
+  useEffect(() => {
+    pendingCoreTime.current = coreTime;
+  }, [coreTime]);
+
   const saveSettings = () => {
-    // Validate time range before saving
+    // Final validation before saving
     const [startHours, startMinutes] = dayDuration.start.split(":").map(Number);
     const [endHours, endMinutes] = dayDuration.end.split(":").map(Number);
 
@@ -89,11 +111,14 @@ export function SettingsDialog({
       );
     }
 
+    // Also validate core time is within day duration
+    const validatedCoreTime = validateCoreTimeWithinDayDuration();
+
     // Save settings to localStorage
     localStorage.setItem("timebox-name", name);
     localStorage.setItem("timebox-northStar", northStar);
     localStorage.setItem("timebox-dayDuration", JSON.stringify(dayDuration));
-    localStorage.setItem("timebox-workingDuration", workingDuration.toString());
+    localStorage.setItem("timebox-coreTime", JSON.stringify(validatedCoreTime));
     localStorage.setItem("timebox-profile", profile);
     localStorage.setItem("timebox-hobbies", hobbies);
     localStorage.setItem(
@@ -105,9 +130,33 @@ export function SettingsDialog({
     onOpenChange(false);
   };
 
-  // Validate time inputs when they change
+  // Handles time input changes with debouncing
   const handleTimeChange = (field: "start" | "end", value: string) => {
-    const updatedDuration = { ...dayDuration, [field]: value };
+    // Update the pending value immediately (for UI responsiveness)
+    pendingDayDuration.current = {
+      ...pendingDayDuration.current,
+      [field]: value,
+    };
+
+    // Update the displayed value immediately for better UX
+    setDayDuration({
+      ...pendingDayDuration.current,
+    });
+
+    // Clear any existing timer
+    if (dayDurationDebounceTimer.current) {
+      clearTimeout(dayDurationDebounceTimer.current);
+    }
+
+    // Set a new timer to validate after user stops typing
+    dayDurationDebounceTimer.current = setTimeout(() => {
+      validateDayDuration(field);
+    }, 800); // 800ms debounce delay
+  };
+
+  // Validate day duration with proper constraints
+  const validateDayDuration = (field: "start" | "end") => {
+    const updatedDuration = { ...pendingDayDuration.current };
 
     // Only do validation if both values are set
     if (updatedDuration.start && updatedDuration.end) {
@@ -132,31 +181,112 @@ export function SettingsDialog({
           const newEndHours = (startHours + 1) % 24;
           const formattedEndTime = `${newEndHours.toString().padStart(2, "0")}:${startMinutes.toString().padStart(2, "0")}`;
 
-          setDayDuration({
-            start: value,
-            end: formattedEndTime,
-          });
-          return;
-        }
+          updatedDuration.end = formattedEndTime;
+        } else if (field === "end") {
+          // If changing end, adjust to ensure it's at least 1 hour after start
+          // Only update if end time would be earlier than start + 1 hour
+          if (startTotalMinutes >= endTotalMinutes - 60) {
+            const newStartHours = Math.max(0, (endHours - 1 + 24) % 24);
+            const formattedStartTime = `${newStartHours.toString().padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}`;
 
-        // field === 'end'
-        // If changing end, adjust to ensure it's at least 1 hour after start
-        // Only update if end time would be earlier than start + 1 hour
-        if (startTotalMinutes >= endTotalMinutes - 60) {
-          const newStartHours = Math.max(0, (endHours - 1 + 24) % 24);
-          const formattedStartTime = `${newStartHours.toString().padStart(2, "0")}:${endMinutes.toString().padStart(2, "0")}`;
-
-          setDayDuration({
-            start: formattedStartTime,
-            end: value,
-          });
-          return;
+            updatedDuration.start = formattedStartTime;
+          }
         }
       }
     }
 
-    // If no special handling needed, just update normally
+    // Update state with validated values
     setDayDuration(updatedDuration);
+
+    // Instead of using setTimeout which can cause an infinite loop,
+    // return the validated duration for further processing
+    return updatedDuration;
+  };
+
+  // Handle core time changes with debouncing
+  const handleCoreTimeChange = (field: "start" | "end", value: string) => {
+    // Update the pending value immediately (for UI responsiveness)
+    pendingCoreTime.current = {
+      ...pendingCoreTime.current,
+      [field]: value,
+    };
+
+    // Update the displayed value immediately for better UX
+    setCoreTime({
+      ...pendingCoreTime.current,
+    });
+
+    // Clear any existing timer
+    if (coreTimeDebounceTimer.current) {
+      clearTimeout(coreTimeDebounceTimer.current);
+    }
+
+    // Set a new timer to validate after user stops typing
+    coreTimeDebounceTimer.current = setTimeout(() => {
+      validateCoreTimeWithinDayDuration(pendingCoreTime.current);
+    }, 800); // 800ms debounce delay
+  };
+
+  // Validate that core time is within day duration
+  const validateCoreTimeWithinDayDuration = (newCoreTime = coreTime) => {
+    // Convert all times to minutes for easier comparison
+    const dayStartParts = dayDuration.start.split(":").map(Number);
+    const dayEndParts = dayDuration.end.split(":").map(Number);
+    const coreStartParts = newCoreTime.start.split(":").map(Number);
+    const coreEndParts = newCoreTime.end.split(":").map(Number);
+
+    const dayStartMinutes = dayStartParts[0] * 60 + dayStartParts[1];
+    let dayEndMinutes = dayEndParts[0] * 60 + dayEndParts[1];
+    const coreStartMinutes = coreStartParts[0] * 60 + coreStartParts[1];
+    let coreEndMinutes = coreEndParts[0] * 60 + coreEndParts[1];
+
+    // If end is 00:00, treat it as 24:00
+    if (dayEndParts[0] === 0 && dayEndParts[1] === 0) {
+      dayEndMinutes = 24 * 60;
+    }
+    if (coreEndParts[0] === 0 && coreEndParts[1] === 0) {
+      coreEndMinutes = 24 * 60;
+    }
+
+    const updatedCoreTime = { ...newCoreTime };
+    let needsUpdate = false;
+
+    // Check if core start is before day start
+    if (coreStartMinutes < dayStartMinutes) {
+      updatedCoreTime.start = dayDuration.start;
+      needsUpdate = true;
+    }
+
+    // Check if core end is after day end
+    if (coreEndMinutes > dayEndMinutes) {
+      updatedCoreTime.end = dayDuration.end;
+      needsUpdate = true;
+    }
+
+    // Check if core duration is at least 1 hour
+    if (coreEndMinutes - coreStartMinutes < 60) {
+      const newCoreEndHours = (coreStartParts[0] + 1) % 24;
+      const formattedEndTime = `${newCoreEndHours.toString().padStart(2, "0")}:${coreStartParts[1].toString().padStart(2, "0")}`;
+
+      updatedCoreTime.end = formattedEndTime;
+      needsUpdate = true;
+    }
+
+    // Update core time if needed and if it's different from current value
+    // Adding the equality check prevents unnecessary state updates
+    if (
+      needsUpdate &&
+      (updatedCoreTime.start !== coreTime.start ||
+        updatedCoreTime.end !== coreTime.end)
+    ) {
+      setCoreTime(updatedCoreTime);
+      pendingCoreTime.current = updatedCoreTime;
+      alert(
+        "Core Time must be within Day Duration and at least 1 hour long. Adjusting automatically.",
+      );
+    }
+
+    return updatedCoreTime;
   };
 
   return (
@@ -171,8 +301,12 @@ export function SettingsDialog({
 
         <Tabs defaultValue="personal" className="py-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="personal">Personal Info</TabsTrigger>
-            <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
+            <TabsTrigger value="personal" className="cursor-pointer">
+              Personal Info
+            </TabsTrigger>
+            <TabsTrigger value="scheduling" className="cursor-pointer">
+              Scheduling
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="personal" className="space-y-6 py-4">
@@ -255,24 +389,31 @@ export function SettingsDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="workingDuration">
-                Working Duration (minutes)
-              </Label>
+              <Label htmlFor="coreTimeStart">Core Time</Label>
               <p className="text-muted-foreground text-xs">
-                How long do you prefer to work on a task before taking a break?
+                When are you most active and productive? (must be within day
+                duration)
               </p>
-              <Input
-                id="workingDuration"
-                type="number"
-                min={15}
-                max={120}
-                step={5}
-                value={workingDuration}
-                onChange={(e) => setWorkingDuration(Number(e.target.value))}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="coreTimeStart"
+                  type="time"
+                  value={coreTime.start}
+                  onChange={(e) =>
+                    handleCoreTimeChange("start", e.target.value)
+                  }
+                />
+                <span>to</span>
+                <Input
+                  id="coreTimeEnd"
+                  type="time"
+                  value={coreTime.end}
+                  onChange={(e) => handleCoreTimeChange("end", e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2 pt-2">
+            <div className="mb-2 flex items-center space-x-2 pt-2">
               <Checkbox
                 id="intermittentFasting"
                 checked={intermittentFasting}

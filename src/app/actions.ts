@@ -61,9 +61,6 @@ export async function generateSchedule(params: GenerateScheduleParams) {
     schedule: z.array(scheduleItemSchema),
   });
 
-  // Define working duration (default to 45 min if not provided)
-  // const workingDuration = params.workingDuration || 45;
-
   // Build additional context from user profile if available
   const profileContext = params.profile
     ? `\nUser profile: "${params.profile}"`
@@ -95,7 +92,7 @@ generate a realistic daily schedule applying timeboxing principles:
 3. Allocate at least one 1-hour block for physical activity/movement 
 4. Include at least one 1-2 hour leisure/entertainment block
 5. Consider grouping similar tasks into larger time blocks when appropriate (1+ hours each)
-6. Prioritize the most important/challenging tasks during peak productivity hours (typically morning)
+6. Schedule the most important/challenging tasks during the user's Core Time (${params.coreTime.start} to ${params.coreTime.end}), which is when they are most active and productive
 7. ONLY schedule activities between the user's preferred hours of ${params.dayDuration.start} and ${params.dayDuration.end}
 
 IMPORTANT: Each activity block MUST be a minimum of 30 minutes in duration. Do NOT suggest any activities shorter than 30 minutes.
