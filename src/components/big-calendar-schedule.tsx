@@ -266,7 +266,7 @@ export const BigCalendarSchedule = forwardRef<
             color: "#991b1b", // red-800
           },
         };
-      case "leisure":
+      case "leisure-relax-eating":
         return {
           style: {
             backgroundColor: "#e9d5ff", // purple-200

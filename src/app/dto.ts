@@ -36,7 +36,12 @@ export const scheduleItemSchema = z.object({
   startTime: z.number().int(),
   duration: z.number().int(),
   activity: z.string(),
-  activityType: z.enum(["top-goal", "leisure", "physical", "default"]),
+  activityType: z.enum([
+    "top-goal",
+    "leisure-relax-eating",
+    "physical",
+    "default",
+  ]),
 });
 
 export type ScheduleItem = z.infer<typeof scheduleItemSchema>;

@@ -60,6 +60,7 @@ The goals should be:
 - Realistic to accomplish in a single day
 - Focused on high-impact activities
 - Written in a concise, direct format
+- Plain text, no markdown
 </task>`,
   });
 
@@ -87,10 +88,14 @@ export async function generateSchedule(params: GenerateScheduleParams) {
     ? `\nUser hobbies and interests: "${params.hobbies}"`
     : "";
   const fastingContext = params.intermittentFasting
-    ? "\nUser practices intermittent fasting, so avoid scheduling meal times too close together and consider a later breakfast/earlier dinner window."
+    ? "\nUser practices intermittent fasting, so avoid scheduling meal times too close together and consider a later breakfast/earlier dinner window. Common methods include 16:8 (16 hours fasting, 8-hour eating window)."
+    : "";
+  const dateContext = params.date
+    ? `\nThe date of the schedule is: "${params.date}"`
     : "";
 
-  const additionalContext = profileContext + hobbiesContext + fastingContext;
+  const additionalContext =
+    profileContext + hobbiesContext + fastingContext + dateContext;
 
   // Use generateObject to generate the schedule
   const result = await generateObject({
@@ -118,6 +123,7 @@ Follow these specific instructions in sequence:
 6. Consider grouping similar tasks into larger time blocks when appropriate (1+ hours each)
 7. Ensure the schedule is realistic and achievable, with appropriate transitions between activities
 8. Include time for meals and basic self-care activities
+9. Make sure the activity type is matched to the activity, it should be one of the following: ${Object.keys(scheduleItemSchema.shape.activityType.enum).join(", ")}
 
 The schedule should follow timeboxing principles, which means:
 - Each activity has a specific start and end time
