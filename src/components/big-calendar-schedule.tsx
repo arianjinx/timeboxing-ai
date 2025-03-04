@@ -117,7 +117,7 @@ const CustomToolbar = (toolbar: ToolbarProps) => {
   };
 
   return (
-    <div className="mb-4 flex items-center justify-between px-2">
+    <div className="mb-4 flex items-center justify-between px-2 print:hidden">
       <span className="font-medium">&nbsp;</span>
       <div className="flex gap-2">
         <Button
@@ -690,10 +690,10 @@ export const BigCalendarSchedule = forwardRef<
   }, [schedule, dayDuration, setSchedule]);
 
   return (
-    <div className="h-[calc(100vh-200px)] overflow-hidden print:h-full">
+    <div className="h-[calc(100vh-200px)] overflow-hidden print:h-auto">
       {schedule.length === 0 && view === "agenda" ? (
         <div className="flex h-full flex-col">
-          <div className="mb-4 flex items-center justify-between px-2">
+          <div className="mb-4 flex items-center justify-between px-2 print:hidden">
             <span className="font-medium">&nbsp;</span>
             <div className="flex gap-2">
               <Button

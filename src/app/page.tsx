@@ -255,7 +255,7 @@ export default function TimeboxingApp() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
       <div className="mx-auto max-w-7xl overflow-hidden rounded-xl bg-white shadow-sm print:rounded-none print:shadow-none">
-        <div className="flex items-center justify-between border-b p-4 md:p-6 print:p-4">
+        <div className="flex items-center justify-between border-b p-4 md:p-6 print:hidden">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-gray-500 print:text-black" />
             <h1 className="font-semibold text-xl">Timeboxing App</h1>
