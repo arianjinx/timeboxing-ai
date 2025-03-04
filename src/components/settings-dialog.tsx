@@ -293,7 +293,7 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="py-4">
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
         <DialogDescription className="mt-2">
