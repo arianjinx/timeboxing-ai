@@ -72,7 +72,13 @@ export async function generateSchedule(params: GenerateScheduleParams) {
     ? "\nUser practices intermittent fasting, so avoid scheduling meal times too close together and consider a later breakfast/earlier dinner window."
     : "";
 
-  const additionalContext = profileContext + hobbiesContext + fastingContext;
+  // Add date context if available
+  const dateContext = params.date
+    ? `\nThis schedule is for: ${new Date(params.date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`
+    : "";
+
+  const additionalContext =
+    profileContext + hobbiesContext + fastingContext + dateContext;
 
   // Use generateObject to generate the schedule
   const result = await generateObject({

@@ -197,3 +197,23 @@
 .rbc-custom-calendar .rbc-time-view {
   border: none;
 }
+
+/* Add custom styles for the selected day */
+.rbc-custom-calendar .rbc-day-selected {
+  background-color: #e0f2fe !important; /* light blue background */
+}
+
+/* Make the day slot selectable even when no events */
+.rbc-custom-calendar .rbc-day-slot {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.rbc-custom-calendar .rbc-day-slot:hover {
+  background-color: #f0f9ff; /* lighter blue on hover */
+}
+
+/* Make it clear that you can click to add event */
+.rbc-custom-calendar .rbc-time-slot {
+  cursor: pointer;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ScheduleItem } from "@/app/dto";
-import { addHours, format, startOfDay } from "date-fns";
+import { addHours, format, isSameDay, startOfDay } from "date-fns";
 import moment from "moment";
 import {
   forwardRef,
@@ -148,10 +148,35 @@ export const BigCalendarSchedule = forwardRef<
   // Convert the startTime and duration to Date objects for React Big Calendar
   const calendarEvents = useMemo(() => {
     if (!schedule || schedule.length === 0) {
-      return []; // Return empty array if schedule is empty
+      // If there are no events, add an invisible "anchor" event on the selected date
+      // to ensure the date is active and events can be added
+      if (date) {
+        const baseDate = startOfDay(date);
+        const startHours = Number.parseInt(dayDuration.start.split(":")[0], 10);
+
+        return [
+          {
+            id: "anchor-event",
+            title: "",
+            start: addHours(baseDate, startHours),
+            end: addHours(baseDate, startHours + 0.5),
+            activityType: "default",
+            resource: {
+              id: "anchor-event",
+              startTime: startHours,
+              duration: 0.5,
+              activity: "",
+              activityType: "default",
+            },
+            // Make the event invisible
+            style: { opacity: 0, pointerEvents: "none" },
+          },
+        ];
+      }
+      return []; // Return empty array if schedule is empty and no date
     }
 
-    const baseDate = startOfDay(new Date());
+    const baseDate = date ? startOfDay(date) : startOfDay(new Date());
 
     // Get time boundaries for filtering
     const [startHours] = dayDuration.start.split(":").map(Number);
@@ -188,12 +213,22 @@ export const BigCalendarSchedule = forwardRef<
         resource: item, // Store the original item as a resource
       };
     });
-  }, [schedule, dayDuration]);
+  }, [schedule, dayDuration, date]);
 
   // Get color classes based on activity type
   const getEventStyles: EventPropGetter<object> = useCallback((event) => {
     // We need to safely access properties from the raw event object
     const calEvent = event as unknown as CalendarEvent;
+
+    // Special handling for the invisible anchor event
+    if (calEvent.id === "anchor-event") {
+      return {
+        style: {
+          display: "none", // Completely hide the anchor event
+        },
+      };
+    }
+
     const activityType = calEvent?.activityType;
 
     // Use stronger, more visible colors
@@ -637,7 +672,11 @@ export const BigCalendarSchedule = forwardRef<
         defaultView="day"
         views={{ day: true, agenda: true }}
         date={date || new Date()}
-        onNavigate={(newDate) => setDate?.(newDate)}
+        onNavigate={(newDate) => {
+          if (setDate) {
+            setDate(newDate);
+          }
+        }}
         step={30} // Keep 30-minute steps for events
         timeslots={2} // Use 2 slots per "step" (which gives us 30 mins per slot)
         onEventDrop={onEventDrop}
@@ -647,6 +686,13 @@ export const BigCalendarSchedule = forwardRef<
         onSelectSlot={onSelectSlot}
         onSelectEvent={onSelectEvent}
         onDoubleClickEvent={onDoubleClickEvent}
+        dayPropGetter={(dayDate: Date) => {
+          const isSelectedDate = date && isSameDay(dayDate, date);
+          return {
+            className: isSelectedDate ? "rbc-day-selected" : "",
+            style: isSelectedDate ? { backgroundColor: "#e0f2fe" } : {}, // light blue background
+          };
+        }}
         min={validMin}
         max={validMax}
         eventPropGetter={getEventStyles}

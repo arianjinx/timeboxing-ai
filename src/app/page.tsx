@@ -197,10 +197,16 @@ export default function TimeboxApp() {
         profile,
         hobbies,
         intermittentFasting,
+        date: date.toISOString(),
       });
 
       if (result.schedule && result.schedule.length > 0) {
         setSchedule(result.schedule);
+
+        if (calendarRef.current) {
+          calendarRef.current.switchToAgendaView();
+        }
+
         toast.success("Schedule generated successfully");
         return;
       }

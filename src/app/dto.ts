@@ -26,6 +26,7 @@ export const generateScheduleSchema = z.object({
   profile: z.string().optional(),
   hobbies: z.string().optional(),
   intermittentFasting: z.boolean().optional(),
+  date: z.string().optional(),
 });
 
 export type GenerateScheduleParams = z.infer<typeof generateScheduleSchema>;
