@@ -2,7 +2,7 @@
 
 A smart AI assistant that helps you create optimized daily schedules using timeboxing principles. Generate focused daily goals and structured time blocks based on your priorities, all powered by AI.
 
-<img src="timeboxing-ai.gif" alt="Timeboxing AI Demo" style="max-width: 300px; width: 100%;">
+<img src="timeboxing-ai.gif" alt="Timeboxing AI Demo" style="max-width: 100%; width: 300px;">
 
 **[Live Demo: timeboxing-ai.vercel.app](https://timeboxing-ai.vercel.app)**
 
